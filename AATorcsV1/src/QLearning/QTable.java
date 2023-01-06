@@ -78,6 +78,8 @@ public class QTable {
 		return currentQ;
 
 	}
+
+
 	
 	public QCell getQCell(Integer position) {
 		return this.qTable[position];

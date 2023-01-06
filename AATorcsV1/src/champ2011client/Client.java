@@ -4,6 +4,7 @@
 package champ2011client;
 
 import java.util.ArrayList;
+import java.util.Random;
 import java.util.StringTokenizer;
 
 import QLearning.*;
@@ -25,9 +26,6 @@ public class Client {
 	private static Stage stage;
 	private static String trackName;
 
-	
-	private static QTable qtable;
-	
 	/**
 	 * @param args
 	 *            is used to define all the options of the client.
@@ -59,13 +57,6 @@ public class Client {
 		
 		long curEpisode = 0;
 		boolean shutdownOccurred = false;
-		
-		/**
-		 * 		Q-TABLE
-		 */
-		// QTable(numEstados);
-		qtable = new QTable(Constantes.NUM_STATES_STEER); // Numero de estados de giro de volante (3).
-		QTableFrame qTableFrame = new QTableFrame(qtable);
 		
 		do {
 
@@ -134,102 +125,7 @@ public class Client {
 
 	}
 	
-	public void train(Integer nmEpisodes, Integer startState, Integer targetState, Double porcentaje)
-			throws InterruptedException {
-				
-		double p = porcentaje;
-		// Por cada episodio
-		for (Integer episodes = 0; episodes < nmEpisodes; episodes++) {
-
-			porcentaje = p + (1 - p) * (((double) episodes / (double) (nmEpisodes-50)));
-			if (porcentaje > 1.0)
-				porcentaje = 1.0;
-			
-			System.out.println(porcentaje);
-			double recompensa_acumulada = 0;
-			int long_camino = 0;
-
-			Integer currentState = startState;
-
-			long inicio = System.nanoTime();
-			// Mientras no se llegue al estado objetivo
-			while (!currentState.equals(targetState)) {
-
-				// Thread.sleep(1);
-
-				// Paso 1. Escoger un movimiento.
-
-				// Elige la posición que obtenga una mayor recompensa a partir del estado
-				// actual. //EXPLOTA
-				MovePosition movePosition = qtable.getBestRewardPosition(currentState, new ArrayList<MovePosition>());
-
-				// Calculamos el estado siguiente
-				Integer nextState = null;
-				// Explora nuevos estados
-				if (this.randomGenerator.nextDouble() >= porcentaje) { // EXPLORA
-					// Elige un movimiento aleatorio
-					MovePosition sorted = MovePosition.values()[this.randomGenerator.nextInt(4)];
-					movePosition = sorted;
-				}
-				nextState = maze.move(currentState, movePosition);
-
-				// Si el estado siguiente se sale del mapa se le recompensa con una puntuación muy baja.
-				
-				if (nextState == -1) {
-					nextState = currentState;
-					// Obtiene las coordenadas del estado siguiente
-					Integer[] targetCoordinates = maze.getCoordinates(nextState);
-
-					// Obtiene la recompensa del destino
-					Double targetReward = Double.MIN_VALUE;
-
-					// Step 2 (Sets Q-Table reward and move
-					// Paso 2. Establece la recompensa y el movimiento en la Q-tabla
-					Double reward = qtable.setReward(currentState, nextState, movePosition, targetReward,
-							getBestMoveFromTarget(nextState), episodes);
-
-					recompensa_acumulada += qtable.getReward(currentState, movePosition);
-
-				} else {
-
-					// Obtiene las coordenadas del estado siguiente
-					Integer[] targetCoordinates = maze.getCoordinates(nextState);
-
-					// Obtiene la recompensa del destino
-					Double targetReward = maze.getMap()[targetCoordinates[0]][targetCoordinates[1]] * 1.0;
-
-					// Step 2 (Sets Q-Table reward and move
-					// Paso 2. Establece la recompensa y el movimiento en la Q-tabla
-					Double reward = qtable.setReward(currentState, nextState, movePosition, targetReward,
-							getBestMoveFromTarget(nextState), episodes);
-
-				}
-				recompensa_acumulada += qtable.getReward(currentState, movePosition);
-
-				// Actualiza la ventana de la Q-Tabla
-
-				this.qTableFrame.setQTable(qtable);
-
-				// Actualiza el estado actual.
-				currentState = nextState;
-				long_camino++;
-			}
-
-			long fin = System.nanoTime();
-			//////////////////////////////////////
-
-			System.out.println("% Explotación: " + porcentaje);
-			System.out.println("Iteracion " + episodes + ":" + (double) ((fin - inicio)) / 100000);
-			System.out.println("Recompensa" + episodes + "=" + (recompensa_acumulada));
-			System.out.println("Longitud Camino = " + long_camino);
-			System.out.println("-----------------------------");
-
-		}
-
-	}
 	
-	
-
 	private static void parseParameters(String[] args) {
 		/*
 		 * Set default values for the options
