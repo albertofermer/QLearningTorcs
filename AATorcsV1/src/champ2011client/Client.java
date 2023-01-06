@@ -62,7 +62,7 @@ public class Client {
 		
 		QTable qtable = null;
 		// QTable(numEstados);
-		qtable = new QTable(3);
+		qtable = new QTable(Constantes.NUM_STATES_STEER); // Numero de estados de giro de volante (3).
 		QLearning.QTableFrame qTableFrame = new QLearning.QTableFrame(qtable);
 		
 		do {
