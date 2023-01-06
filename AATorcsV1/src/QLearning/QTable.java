@@ -57,35 +57,27 @@ public class QTable {
 
 	/**
 	 * Calcula el Q-valor
-	 * @param source
+	 * @param estado
 	 * @param target
 	 * @param accion
 	 * @param targetReward
 	 * @param targetBestMove
 	 * @return
 	 */
-	public Double setReward(Integer source, Integer target, Integer accion, Double targetReward,
-		Integer targetBestMove, Integer episode) {
+	public Double setReward(Integer estado, Integer target, Integer accion, Double targetReward,
+		Integer targetBestMove) {
 		
-		Double currentQ = this.getReward(source, accion);
+		Double currentQ = this.getReward(estado, accion);
 		Double maxFutureQ = this.getReward(target, targetBestMove);
 		Double learningRate = 0.5;
 		Double discountFactor = 0.1;
 		
 		currentQ = (1-learningRate)*currentQ + learningRate*(targetReward + discountFactor * maxFutureQ);
 
-		this.qTable[source].setReward(accion, currentQ);
+		this.qTable[estado].setReward(accion, currentQ);
 		return currentQ;
 
 	}
-
-//	public void printTable() {
-//		for (int i = 0; i < this.qTable.length; i++) {
-//			System.out.println(
-//					"POSITION " + i + " , TOP: " + qTable[i].getUpReward() + " , DOWN: " + qTable[i].getBelowReward()
-//							+ " , LEFT: " + qTable[i].getLeftReward() + " , RIGHT: " + qTable[i].getRightReward());
-//		}
-//	}
 	
 	public QCell getQCell(Integer position) {
 		return this.qTable[position];

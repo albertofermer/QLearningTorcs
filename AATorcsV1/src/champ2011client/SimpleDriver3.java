@@ -1,5 +1,7 @@
 package champ2011client;
 
+import java.util.ArrayList;
+
 public class SimpleDriver3 extends Controller{
 	
 	/* Gear Changing Constants*/
@@ -192,7 +194,7 @@ public class SimpleDriver3 extends Controller{
 	        if (steer > 1)
 	            steer = 1;
 //	        
-	        System.out.println(sensors.getTrackPosition());
+//	        System.out.println(sensors.getTrackPosition());
 	        
 //	        // set accel and brake from the joint accel/brake command 
 	        float accel,brake;
@@ -220,6 +222,8 @@ public class SimpleDriver3 extends Controller{
 	        return action;
 	    }
 	}
+	
+
 
 	private float filterABS(SensorModel sensors,float brake){
 		// convert speed to m/s
