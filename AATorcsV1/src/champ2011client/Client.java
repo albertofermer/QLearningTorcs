@@ -5,6 +5,7 @@ package champ2011client;
 
 import java.util.StringTokenizer;
 
+import QLearning.*;
 import champ2011client.Controller.Stage;
 
 /**
@@ -54,6 +55,16 @@ public class Client {
 		
 		long curEpisode = 0;
 		boolean shutdownOccurred = false;
+		
+		/**
+		 * 		Q-TABLE
+		 */
+		
+		QTable qtable = null;
+		// QTable(numEstados);
+		qtable = new QTable(3);
+		QLearning.QTableFrame qTableFrame = new QLearning.QTableFrame(qtable);
+		
 		do {
 
 			/*
@@ -191,6 +202,7 @@ public class Client {
 		try {
 			controller = (Controller) (Object) Class.forName(name)
 					.newInstance();
+			System.out.println(Class.forName(name));
 		} catch (ClassNotFoundException e) {
 			System.out.println(name	+ " is not a class name");
 			System.exit(0);
