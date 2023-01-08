@@ -14,7 +14,7 @@ public class SimpleDriver3 extends Controller{
 	final int[]  gearDown={0,2000,2000,2000,3000,4000};
 
 	/* Stuck constants*/
-	final int  stuckTime = 25;
+	final int  stuckTime = 250;
 	final float  stuckAngle = (float) 0.523598775; //PI/6
 
 	/* Accel and Brake Constants*/
@@ -210,7 +210,7 @@ public class SimpleDriver3 extends Controller{
 	        
 	        // compute steering
 	        //float steer = getSteer(sensors);
-	        float steer = train(getSteerState(sensors.getTrackPosition()), 1, sensors.getCurrentLapTime()/100.0);
+	        float steer = train(getSteerState(sensors.getTrackPosition()), 1, 0.9);
 	        // normalize steering
 	        if (steer < -1)
 	            steer = -1;
@@ -241,12 +241,12 @@ public class SimpleDriver3 extends Controller{
 	        System.out.println("Estado " +getSteerState(sensors.getTrackPosition()));
 	        System.out.println("Posicion " +sensors.getTrackPosition());
 	        double porcentaje = getPorcentaje(sensors);
-	                
+	        //sensors.getAngleToTrackAxis()
 	        action.steering = steer;
 
 			action.accelerate = accel;
 	        action.brake = 0;
-	        action.clutch = clutch;
+	        action.clutch = 0;
 	        return action;
 	    }
 	}
@@ -313,7 +313,7 @@ public class SimpleDriver3 extends Controller{
 						targetReward = -1000.0;
 						break;
 					case 1:
-						targetReward = Double.MAX_VALUE;
+						targetReward = 1000.0;
 						break;
 					case 2:
 						targetReward = -1000.0;
