@@ -238,8 +238,9 @@ public class SimpleDriver3 extends Controller{
 	        // build a CarControl variable and return it
 	        Action action = new Action ();
 	        action.gear = gear;
-	        System.out.println("Estado " +getSteerState(sensors.getTrackPosition()));
-	        System.out.println("Posicion " +sensors.getTrackPosition());
+	        System.out.println("Estado: " +getSteerState(sensors.getTrackPosition()));
+	        System.out.println("Posicion: " +sensors.getTrackPosition());
+	        System.out.println("Steer: " + steer);
 	        double porcentaje = getPorcentaje(sensors);
 	        //sensors.getAngleToTrackAxis()
 	        action.steering = steer;
@@ -255,7 +256,7 @@ public class SimpleDriver3 extends Controller{
 		
 		//System.out.println(sensors.getCurrentLapTime());
 		if (sensors.getCurrentLapTime() > 60.0) return 1;
-		else return 0.2;
+		else return 0.7;
 		
 		
 		//return 0;
@@ -272,7 +273,6 @@ public class SimpleDriver3 extends Controller{
 				
 		float steer = 0.0f;
 		
-		// Por cada episodio
 
 			if (porcentaje > 1.0)
 				porcentaje = 1.0;
@@ -336,7 +336,8 @@ public class SimpleDriver3 extends Controller{
 			//////////////////////////////////////
 			System.out.println("-----------------------------");
 		
-		return qtable.getBestRewardPosition(currentState);
+			
+		return Constantes.steer_values[qtable.getBestRewardPosition(currentState)];
 		
 	}
 	
