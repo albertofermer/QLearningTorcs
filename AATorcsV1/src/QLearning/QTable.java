@@ -129,10 +129,7 @@ public class QTable {
 		        String data = myReader.nextLine();
 		        String[] datos = data.strip().split("\t");
 		        for (int i = 1 ; i < datos.length; i++) {
-		        	//System.out.println(datos[i]);
 		        	int estado = Integer.parseInt(datos[0]);
-		        	//System.out.println(this.getQCell(estado));
-		        	//System.out.println(datos.length);
 		        	this.getQCell(estado-1).setReward(i-1, Double.parseDouble(datos[i]));
 		        	
 		        }
