@@ -14,7 +14,7 @@ public class SimpleDriver3 extends Controller{
 	final int[]  gearDown={0,2000,2000,2000,3000,4000};
 
 	/* Stuck constants*/
-	final int  stuckTime = 250;
+	final int  stuckTime = 25;
 	final float  stuckAngle = (float) 0.523598775; //PI/6
 
 	/* Accel and Brake Constants*/
@@ -60,6 +60,11 @@ public class SimpleDriver3 extends Controller{
 	private static QTableFrame qTableFrame = new QTableFrame(qtable);
 	private Random randomGenerator = new Random();
 
+	public SimpleDriver3() {
+		
+	qtable.loadQTable();
+	qTableFrame.setQTable(qtable);
+	}
 	
 	public void reset() {
 		System.out.println("Restarting the race!");
@@ -67,6 +72,7 @@ public class SimpleDriver3 extends Controller{
 	}
 
 	public void shutdown() {
+		qtable.saveQTable();
 		System.out.println("Bye bye!");		
 	}
 	
@@ -210,7 +216,7 @@ public class SimpleDriver3 extends Controller{
 	        
 	        // compute steering
 	        //float steer = getSteer(sensors);
-	        float steer = train(getSteerState(sensors.getTrackPosition()), 1, 0.9);
+	        float steer = train(getSteerState(sensors.getTrackPosition()), 1, 0.7);
 	        // normalize steering
 	        if (steer < -1)
 	            steer = -1;
@@ -270,19 +276,13 @@ public class SimpleDriver3 extends Controller{
 	}
 
 	public float train(Integer startState, Integer targetState, Double porcentaje){
-				
-		float steer = 0.0f;
-		
 
-			if (porcentaje > 1.0)
-				porcentaje = 1.0;
+		if (porcentaje > 1.0) porcentaje = 1.0;
 			
 			//System.out.println(porcentaje);
 
 			// El estado actual será el estado siguiente del estado anterior.
 			Integer currentState = startState;
-
-			// Mientras no se llegue al estado objetivo
 
 
 				// Paso 1. Escoger un movimiento.
@@ -294,7 +294,7 @@ public class SimpleDriver3 extends Controller{
 				// Calculamos el estado anterior
 				Integer previousState = null;
 				// Explora nuevos estados
-				if (this.randomGenerator.nextDouble() >= porcentaje) { // EXPLORA
+				if (this.randomGenerator.nextDouble() > porcentaje) { // EXPLORA
 					// Elige un movimiento aleatorio
 					Integer sorted = this.randomGenerator.nextInt(Constantes.NUM_ANGLES);
 					best_steer_angle = sorted;
@@ -310,13 +310,13 @@ public class SimpleDriver3 extends Controller{
 				Double targetReward = 0.0;
 				switch (currentState) {
 					case 0: 
-						targetReward = -1000.0;
+						targetReward = 1.0;
 						break;
 					case 1:
 						targetReward = 1000.0;
 						break;
 					case 2:
-						targetReward = -1000.0;
+						targetReward = 1.0;
 						break;
 					default:
 						System.out.println("ERROR");
@@ -336,8 +336,8 @@ public class SimpleDriver3 extends Controller{
 			//////////////////////////////////////
 			System.out.println("-----------------------------");
 		
-			
-		return Constantes.steer_values[qtable.getBestRewardPosition(currentState)];
+			System.out.println(currentState);
+		return Constantes.STEER_VALUES[qtable.getBestRewardPosition(currentState)];
 		
 	}
 	
