@@ -209,7 +209,7 @@ public class SimpleDriver3 extends Controller{
 	        
 	        // compute steering
 	        //float steer = getSteer(sensors);
-	        float steer = train(getSteerState(sensors.getTrackPosition()), 1, 0.9);
+	        float steer = train(getSteerState(sensors.getTrackPosition()), 1, 0.7);
 	        // normalize steering
 	        if (steer < -1)
 	            steer = -1;
@@ -313,19 +313,19 @@ public class SimpleDriver3 extends Controller{
 				// Obtiene la recompensa del estado actual
 				Double targetReward = 0.0;
 				switch (currentState) {
-					case 0: 
+					case 0: // centro
 						targetReward = 1000.0;
 						break;
-					case 1:
+					case 1: //centro-derecha
 						targetReward = 10.0;
 						break;
-					case 2:
+					case 2: // centro-izquierda
 						targetReward = 10.0;
 						break;
-					case 3:
+					case 3: //izquierda
 						targetReward = 1.0;
 						break;
-					case 4:
+					case 4: // derecha
 						targetReward = 1.0;
 						break;
 					default:
