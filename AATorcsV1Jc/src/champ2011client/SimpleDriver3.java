@@ -14,7 +14,7 @@ public class SimpleDriver3 extends Controller{
 	final int[]  gearDown={0,2000,2000,2000,3000,4000};
 
 	/* Stuck constants*/
-	final int  stuckTime = 250;
+	final int  stuckTime = 25;
 	final float  stuckAngle = (float) 0.523598775; //PI/6
 
 	/* Accel and Brake Constants*/
@@ -60,12 +60,17 @@ public class SimpleDriver3 extends Controller{
 	private static QTableFrame qTableFrame = new QTableFrame(qtable);
 	private Random randomGenerator = new Random();
 
+	public SimpleDriver3() {
+		qtable.loadQTable();
+		qTableFrame.setQTable(qtable);
+	}
 	
 	public void reset() {
 		System.out.println("Restarting the race!");
 	}
 
 	public void shutdown() {
+		qtable.saveQTable();
 		System.out.println("Bye bye!");		
 	}
 	
@@ -154,11 +159,7 @@ public class SimpleDriver3 extends Controller{
 	}
 
 	public Action control(SensorModel sensors){
-		
-		/**
-		 * QTable
-		 */
-	
+
 		
 		// check if car is currently stuck
 		if ( Math.abs(sensors.getAngleToTrackAxis()) > stuckAngle )
@@ -346,7 +347,7 @@ public class SimpleDriver3 extends Controller{
 			//////////////////////////////////////
 			System.out.println("-----------------------------");
 			
-		return Constantes.steer_values[qtable.getBestRewardPosition(currentState)];
+		return Constantes.STEER_VALUES[qtable.getBestRewardPosition(currentState)];
 		
 	}
 	

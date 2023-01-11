@@ -1,13 +1,6 @@
 package champ2011client;
 
-import java.util.ArrayList;
-import java.util.Random;
-
-import QLearning.Constantes;
-import QLearning.QTable;
-import QLearning.QTableFrame;
-
-public class SimpleDriver3 extends Controller{
+public class SimpleDriver2 extends Controller{
 	
 	/* Gear Changing Constants*/
 	final int[]  gearUp={3500,4500,4500,5000,6500,0};; // 2000-7000 es el máximo
@@ -19,14 +12,14 @@ public class SimpleDriver3 extends Controller{
 
 	/* Accel and Brake Constants*/
 	final float maxSpeedDist=70;
-	final float maxSpeed=50;
+	final float maxSpeed=360;
 	final float sin5 = (float) 0.08716;
 	final float cos5 = (float) 0.99619;
 
 	/* Steering constants*/
 	final float steerLock=(float) 0.785398;
 	final float steerSensitivityOffset=(float) 80.0;
-	final float wheelSensitivityCoeff=1;	
+	final float wheelSensitivityCoeff=1;
 
 	/* ABS Filter Constants */
 	final float wheelRadius[]={(float) 0.3179,(float) 0.3179,(float) 0.3276,(float) 0.3276};
@@ -49,29 +42,12 @@ public class SimpleDriver3 extends Controller{
 	// current clutch
 	private float clutch=0;
 	
-	
-	/**
-	 * 		Q-TABLE
-	 */
-	
-
-	
-	private static QTable qtable = new QTable(Constantes.NUM_STATES_STEER);  // Numero de estados de giro de volante (3).
-	private static QTableFrame qTableFrame = new QTableFrame(qtable);
-	private Random randomGenerator = new Random();
-
-	
-	public SimpleDriver3() {
-		qtable.loadQTable();
-		qTableFrame.setQTable(qtable);
-	}
-	
 	public void reset() {
 		System.out.println("Restarting the race!");
+		
 	}
 
 	public void shutdown() {
-		qtable.saveQTable();
 		System.out.println("Bye bye!");		
 	}
 	
@@ -152,7 +128,6 @@ public class SimpleDriver3 extends Controller{
 
 	        // accel/brake command is exponentially scaled w.r.t. the difference between target speed and current one
 	        return (float) (2/(1+Math.exp(sensors.getSpeed() - targetSpeed)) - 1);
-	        //return 1;
 	    }
 	    else
 	        return (float) 0.3; // when out of track returns a moderate acceleration command
@@ -160,12 +135,6 @@ public class SimpleDriver3 extends Controller{
 	}
 
 	public Action control(SensorModel sensors){
-		
-		/**
-		 * QTable
-		 */
-	
-		
 		// check if car is currently stuck
 		if ( Math.abs(sensors.getAngleToTrackAxis()) > stuckAngle )
 	    {
@@ -211,20 +180,17 @@ public class SimpleDriver3 extends Controller{
 	        float accel_and_brake = getAccel(sensors);
 	        // compute gear 
 	        int gear = getGear(sensors);
-	        
-	        
 	        // compute steering
-	        //float steer = getSteer(sensors);
-	        float steer = train(getSteerState(sensors.getTrackPosition()), 1, getPorcentaje(sensors));
+	        float steer = getSteer(sensors);
+	        
+
 	        // normalize steering
 	        if (steer < -1)
 	            steer = -1;
 	        if (steer > 1)
 	            steer = 1;
-//	        
-//	        System.out.println(sensors.getTrackPosition());
 	        
-//	        // set accel and brake from the joint accel/brake command 
+	        // set accel and brake from the joint accel/brake command 
 	        float accel,brake;
 	        if (accel_and_brake>0)
 	        {
@@ -237,135 +203,19 @@ public class SimpleDriver3 extends Controller{
 	            // apply ABS to brake
 	            brake = filterABS(sensors,-accel_and_brake);
 	        }
-//	        
+	        
 	        clutch = clutching(sensors, clutch);
-//	        
+	        
 	        // build a CarControl variable and return it
 	        Action action = new Action ();
 	        action.gear = gear;
-
-	        System.out.println("Estado: " +getSteerState(sensors.getTrackPosition()));
-	        System.out.println("Posicion: " +sensors.getTrackPosition());
-	        System.out.println("Steer: " + steer);
-	        double porcentaje = getPorcentaje(sensors);
-	        //sensors.getAngleToTrackAxis()
 	        action.steering = steer;
-
-			action.accelerate = accel;
-	        action.brake = 0;
-	        action.clutch = 0;
+	        action.accelerate = accel;
+	        action.brake = brake;
+	        action.clutch = clutch;
 	        return action;
 	    }
 	}
-	
-	private double getPorcentaje(SensorModel sensors) {
-		
-		//System.out.println(sensors.getCurrentLapTime());
-		if (sensors.getCurrentLapTime() > 60.0) return 1;
-		else return 0.9;
-		
-		
-		//return 0;
-	}
-
-	private Integer getSteerState(double trackPosition) {
-		//derecha negativo izquierda positivo
-		if (trackPosition <= 0.2 && trackPosition >= -0.2) return 0; // centro
-		else if (trackPosition < -0.2 && trackPosition >-0.5) return 1; // centro-derecha
-		else if (trackPosition > 0.2 && trackPosition < 0.5) return 2; // centro-izquierda
-		else if (trackPosition > 0.5) return 3; //izquierda
-		else if(trackPosition < - 0.5) return 4; // derecha
-		
-		return null;
-	}
-
-	public float train(Integer startState, Integer targetState, Double porcentaje){
-				
-		float steer = 0.0f;
-		
-
-			if (porcentaje > 1.0)
-				porcentaje = 1.0;
-			
-			
-			System.out.println(porcentaje);
-
-			// El estado actual será el estado siguiente del estado anterior.
-			Integer currentState = startState;
-
-			// Mientras no se llegue al estado objetivo
-
-
-				// Paso 1. Escoger un movimiento.
-
-				// Elige la posición que obtenga una mayor recompensa a partir del estado
-				// actual. //EXPLOTA
-				Integer best_steer_angle = qtable.getBestRewardPosition(currentState);
-
-				// Calculamos el estado anterior
-				Integer previousState = null;
-				// Explora nuevos estados
-				if (this.randomGenerator.nextDouble() > porcentaje) { // EXPLORA
-					// Elige un movimiento aleatorio
-					Integer sorted = this.randomGenerator.nextInt(Constantes.NUM_ANGLES);
-					best_steer_angle = sorted;
-				}
-				
-				// Hay que calcular la recompensa para el estado anterior.
-				
-				// Estado Anterior
-				previousState = currentState;
-
-		
-				// Obtiene la recompensa del estado actual
-				Double targetReward = 0.0;
-				switch (currentState) {
-					case 0: // centro
-						targetReward = 1000.0;
-						break;
-					case 1: //centro-derecha
-						targetReward = 200.0;
-						break;
-					case 2: // centro-izquierda
-						targetReward = 200.0;
-						break;
-					case 3: //izquierda
-						targetReward = -1.0;
-						break;
-					case 4: // derecha
-						targetReward = -1.0;
-						break;
-					default:
-						System.out.println("ERROR");
-				}
-				
-				System.out.println("Recompensa: " + targetReward);
-				// Se establece la recompensa para el estado anterior en función del estado actual.
-				Double reward = qtable.setReward(previousState, currentState, best_steer_angle, targetReward,
-							getBestMoveFromTarget(previousState));
-
-				// Actualiza la ventana de la Q-Tabla
-
-				qTableFrame.setQTable(qtable);
-
-				// Actualiza el estado previo.
-				previousState = currentState;
-			//////////////////////////////////////
-			System.out.println("-----------------------------");
-			
-		return Constantes.STEER_VALUES[qtable.getBestRewardPosition(currentState)];
-		
-	}
-	
-	
-
-	// Para calcular la maxFutureQ en la QTable
-	private Integer getBestMoveFromTarget(Integer nextState) {
-		Integer best_angle = null;
-		best_angle = qtable.getBestRewardPosition(nextState);
-		return best_angle;
-	}
-
 
 	private float filterABS(SensorModel sensors,float brake){
 		// convert speed to m/s
