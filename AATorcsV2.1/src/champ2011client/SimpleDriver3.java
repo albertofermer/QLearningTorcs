@@ -19,7 +19,7 @@ public class SimpleDriver3 extends Controller {
 
 	/* Accel and Brake Constants */
 	final float maxSpeedDist = 7;
-	final float maxSpeed = 50;
+	final float maxSpeed = 70;
 	final float sin5 = (float) 0.08716;
 	final float cos5 = (float) 0.99619;
 
@@ -46,6 +46,8 @@ public class SimpleDriver3 extends Controller {
 
 	Integer oldState;
 	Integer oldAction;
+	
+	int contador_resets = 0;
 	
 	Integer lastLap = 0;
 	Integer tick = 0;
@@ -76,6 +78,7 @@ public class SimpleDriver3 extends Controller {
 
 	public void reset() {
 		qtable.saveQTable();
+		contador_resets++;
 		System.out.println("Restarting the race!");
 	}
 
@@ -211,8 +214,10 @@ public class SimpleDriver3 extends Controller {
 	}
 
 	private double getPorcentaje(SensorModel sensors) {
-		double porcentaje = 1.0;
-
+		if (contador_resets == 5) {
+			contador_resets = 0;
+			
+		}
 		// System.out.println(sensors.getCurrentLapTime());
 		if (sensors.getCurrentLapTime() > 60.0)
 			return 1.0;
@@ -268,11 +273,11 @@ public class SimpleDriver3 extends Controller {
 
 		Double targetReward = 0.0;
 
-		if (Math.abs(sensors.getTrackPosition()) > 1) {
+		if (Math.abs(sensors.getTrackPosition()) > 1.4) {
 			/**
 			 * Si el coche se sale de la carretera, entonces se recompensa negativamente.
 			 */
-			targetReward = -1000.0;
+			targetReward = -2.0;
 			Action action = new Action();
 			action.restartRace = true;
 
@@ -308,7 +313,11 @@ public class SimpleDriver3 extends Controller {
 			 * centro de la carretera (cuanto más cercano a 0, más recompensa).
 			 */
 			targetReward = sensors.getDistanceRaced() - Math.abs(Math.sin(sensors.getTrackPosition())) * 10;
-			targetReward = Math.pow(1/((Math.abs(sensors.getTrackPosition()))+1),4)*0.7;
+			
+			double rewardTrackPosition = Math.pow(1/((Math.abs(sensors.getTrackPosition()))+1),4)*0.7;
+			double rewardAngle = Math.pow(1/((Math.abs(sensors.getAngleToTrackAxis()))+1),4)*0.3;
+			
+			targetReward = rewardTrackPosition + rewardAngle;
 			// sensors.getDistanceFromStartLine()
 			// targetReward = 1/(Math.abs(sensors.getTrackPosition())+1);
 
