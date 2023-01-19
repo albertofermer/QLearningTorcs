@@ -275,46 +275,51 @@ public class SimpleDriver4 extends Controller {
 		// return 0;
 	}
 
+	private boolean estaEntre(double valor, double minimo, double maximo) {
+		return (minimo <= valor && valor <= maximo);
+		
+		
+	}
 	private Integer getSteerState(SensorModel sensors) {
 		// derecha negativo izquierda positivo
 		double trackPosition = sensors.getTrackPosition();
 		double carAngle = sensors.getAngleToTrackAxis();
 		
-		if (trackPosition <= 0.2 && trackPosition >= -0.2) {
+		if (estaEntre(trackPosition,-0.2,0.2)) {
 			if(carAngle == 0)
 				return 0; //centro - coche mira recto
-			else if(carAngle > 0 && carAngle < 0.05)
+			else if(estaEntre(carAngle, 0, 0.05))
 				return 1; //centro - coche mira der
-			else if(carAngle < 0 && carAngle > -0.05)
+			else if(estaEntre(carAngle,-0.05,0))
 				return 2; //centro - coche mira izq
-			else if(carAngle >=0.05)
+			else if(estaEntre(carAngle,0.05,1))
+				return 3;
+			else if(estaEntre(carAngle,-1,-0.05))
 				return 4;
-			else if(carAngle <= -0.05)
-				return 5;
 			
 		}else if (trackPosition < -0.2) { //derecha
 			if(carAngle == 0)
-				return 6; //Der - coche mira recto
-			else if(carAngle > 0 && carAngle < 0.05)
-				return 7; //Der - coche mira der
-			else if(carAngle < 0 && carAngle > -0.05)
-				return 8; //Der - coche mira izq
-			else if(carAngle >=0.05)
+				return 5; //derecha - coche mira recto
+			else if(estaEntre(carAngle, 0, 0.05))
+				return 6; //derecha - coche mira der
+			else if(estaEntre(carAngle,-0.05,0))
+				return 7; //derecha - coche mira izq
+			else if(estaEntre(carAngle,0.05,1))
+				return 8;
+			else if(estaEntre(carAngle,-1,-0.05))
 				return 9;
-			else if(carAngle <= -0.05)
-				return 10;
 			
 		}else if (trackPosition > 0.2) { // Izq
 			if(carAngle == 0)
-				return 11; //Izq - coche mira recto
-			else if(carAngle > 0 && carAngle < 0.05)
-				return 12; //Izq - coche mira der
-			else if(carAngle < 0 && carAngle > -0.05)
-				return 13; //Izq - coche mira izq
-			else if(carAngle >=0.05)
+				return 10; //derecha - coche mira recto
+			else if(estaEntre(carAngle, 0, 0.05))
+				return 11; //derecha - coche mira der
+			else if(estaEntre(carAngle,-0.05,0))
+				return 12; //derecha - coche mira izq
+			else if(estaEntre(carAngle,0.05,1))
+				return 13;
+			else if(estaEntre(carAngle,-1,-0.05))
 				return 14;
-			else if(carAngle <= -0.05)
-				return 15;
 			
 		}
 
