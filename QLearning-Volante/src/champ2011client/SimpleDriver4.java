@@ -3,6 +3,7 @@ package champ2011client;
 import java.util.ArrayList;
 import java.util.Random;
 
+import Datos.Dato;
 import QLearning.Constantes;
 import QLearning.QTable;
 import QLearning.QTableFrame;
@@ -48,14 +49,18 @@ public class SimpleDriver4 extends Controller {
 	Integer oldAction;
 	
 	Integer iRestart=0;
-	Integer contador_entrenamientos = 0;
+	Integer contador_entrenamientos = 0; // se resetea
+	Integer indice_carreras = 0; // no se resetea
 	
 	Integer lastLap = 0;
 	Integer tick = 0;
 	float oldSteer;
-	double porcentaje = 0.7;
+	double porcentaje = 0.9;
 	boolean isStuck = false;
 	private int stuck = 0;
+	
+	// Datos
+	Dato d;
 	
 
 	// current clutch
@@ -76,6 +81,7 @@ public class SimpleDriver4 extends Controller {
 	SocketHandler mySocket;
 
 	public SimpleDriver4() {
+		d = new Dato();
 		qtable.loadQTable();
 		qTableFrame.setQTable(qtable);
 	}
@@ -87,17 +93,22 @@ public class SimpleDriver4 extends Controller {
 		
 		iRestart++;
 		contador_entrenamientos++;
+		indice_carreras++;
 		tick = 0;
 		
 		qtable.saveQTable();
-
-		if(contador_entrenamientos == 10) contador_entrenamientos = 0;
 		
+		// Escribe un fichero
+		d.write("datos"+indice_carreras);
+		d = new Dato();
+		
+		if(contador_entrenamientos == 10) contador_entrenamientos = 0;
 		
 	}
 
 	public void shutdown() {
 		qtable.saveQTable();
+		d.write("datos"+indice_carreras);
 		System.out.println("Bye bye!");
 	}
 
@@ -236,6 +247,11 @@ public class SimpleDriver4 extends Controller {
 			//train(getSteerState(sensors), false, getPorcentaje(sensors), sensors);
 		}
 		
+		
+		// Escribe el ángulo del volante que va a utilizar
+		d.addAnguloVolante(steer);
+		d.addTrackPosition(sensors.getTrackPosition());
+		
 		action.gear = gear;
 		action.steering = steer;
 		action.accelerate = accel;
@@ -286,41 +302,40 @@ public class SimpleDriver4 extends Controller {
 		double carAngle = sensors.getAngleToTrackAxis();
 		
 		if (estaEntre(trackPosition,-0.2,0.2)) {
-			if(carAngle == 0)
+			if(estaEntre(carAngle, -0.05, 0.05))
 				return 0; //centro - coche mira recto
-			else if(estaEntre(carAngle, 0, 0.05))
+			else if(estaEntre(carAngle, 0.05, 0.5))
 				return 1; //centro - coche mira der
-			else if(estaEntre(carAngle,-0.05,0))
+			else if(estaEntre(carAngle,-0.5,-0.05))
 				return 2; //centro - coche mira izq
-			else if(estaEntre(carAngle,0.05,1))
+			else if(estaEntre(carAngle,0.5,1))
 				return 3;
-			else if(estaEntre(carAngle,-1,-0.05))
+			else if(estaEntre(carAngle,-1,-0.5))
 				return 4;
 			
 		}else if (trackPosition < -0.2) { //derecha
-			if(carAngle == 0)
-				return 5; //derecha - coche mira recto
-			else if(estaEntre(carAngle, 0, 0.05))
-				return 6; //derecha - coche mira der
-			else if(estaEntre(carAngle,-0.05,0))
-				return 7; //derecha - coche mira izq
-			else if(estaEntre(carAngle,0.05,1))
+			if(estaEntre(carAngle, -0.05, 0.05))
+				return 5; //centro - coche mira recto
+			else if(estaEntre(carAngle, 0.01, 0.5))
+				return 6; //centro - coche mira der
+			else if(estaEntre(carAngle,-0.5,-0.05))
+				return 7; //centro - coche mira izq
+			else if(estaEntre(carAngle,0.5,1))
 				return 8;
-			else if(estaEntre(carAngle,-1,-0.05))
+			else if(estaEntre(carAngle,-1,-0.5))
 				return 9;
 			
 		}else if (trackPosition > 0.2) { // Izq
-			if(carAngle == 0)
-				return 10; //derecha - coche mira recto
-			else if(estaEntre(carAngle, 0, 0.05))
-				return 11; //derecha - coche mira der
-			else if(estaEntre(carAngle,-0.05,0))
-				return 12; //derecha - coche mira izq
-			else if(estaEntre(carAngle,0.05,1))
+			if(estaEntre(carAngle, -0.05, 0.05))
+				return 10; //centro - coche mira recto
+			else if(estaEntre(carAngle, 0.05, 0.5))
+				return 11; //centro - coche mira der
+			else if(estaEntre(carAngle,-0.5,-0.05))
+				return 12; //centro - coche mira izq
+			else if(estaEntre(carAngle,0.5,1))
 				return 13;
-			else if(estaEntre(carAngle,-1,-0.05))
+			else if(estaEntre(carAngle,-1,-0.5))
 				return 14;
-			
 		}
 
 
