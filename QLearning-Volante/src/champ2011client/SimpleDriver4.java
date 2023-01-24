@@ -99,7 +99,7 @@ public class SimpleDriver4 extends Controller {
 		qtable.saveQTable();
 		
 		// Escribe un fichero
-		d.write("datos"+indice_carreras);
+		//d.write("datos"+indice_carreras);
 		d = new Dato();
 		
 		if(contador_entrenamientos == 10) contador_entrenamientos = 0;
@@ -284,8 +284,8 @@ public class SimpleDriver4 extends Controller {
 			iRestart = 0;
 		}
 		
-		if(porcentaje >= 1)
-			porcentaje = 1;
+		if(porcentaje >= 0.999)
+			porcentaje = 0.999;
 		
 		return porcentaje;
 		// return 0;
