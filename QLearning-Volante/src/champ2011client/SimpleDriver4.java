@@ -82,6 +82,7 @@ public class SimpleDriver4 extends Controller {
 			// Añade los datos si la ultima carrera ha sido del jugador.
 			
 			datos.write("datos_Jugador");
+			datos = new Dato();
 		}
 
 		iRestart++;
@@ -98,7 +99,7 @@ public class SimpleDriver4 extends Controller {
 
 	public void shutdown() {
 		qtable_steer.saveQTable();
-		datos.write("datos");
+		datos.write("datos_Jugador");
 		System.out.println("Bye bye!");
 	}
 
