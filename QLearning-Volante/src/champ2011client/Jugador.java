@@ -19,7 +19,7 @@ public class Jugador extends Controller {
 
 	/* Accel and Brake Constants */
 	final float maxSpeedDist = 1;
-	final float maxSpeed = 90;
+	final float maxSpeed = 50;
 	final float sin5 = (float) 0.08716;
 	final float cos5 = (float) 0.99619;
 
@@ -252,7 +252,7 @@ public class Jugador extends Controller {
 		double trackPosition = sensors.getTrackPosition();
 		double carAngle = sensors.getAngleToTrackAxis();
 		
-		if (estaEntre(trackPosition,-0.2,0.2)) {
+		if (estaEntre(trackPosition,-0.01,0.01)) {
 			if(estaEntre(carAngle, -0.05, 0.05))
 				return 0; //centro - coche mira recto
 			else if(estaEntre(carAngle, 0.05, 0.5))
@@ -264,7 +264,7 @@ public class Jugador extends Controller {
 			else if(estaEntre(carAngle,-1,-0.5))
 				return 4;
 			
-		}else if (trackPosition < -0.2) { //derecha
+		}else if (trackPosition < -0.01) { //derecha
 			if(estaEntre(carAngle, -0.05, 0.05))
 				return 5; //centro - coche mira recto
 			else if(estaEntre(carAngle, 0.01, 0.5))
@@ -276,7 +276,7 @@ public class Jugador extends Controller {
 			else if(estaEntre(carAngle,-1,-0.5))
 				return 9;
 			
-		}else if (trackPosition > 0.2) { // Izq
+		}else if (trackPosition > 0.0001) { // Izq
 			if(estaEntre(carAngle, -0.05, 0.05))
 				return 10; //centro - coche mira recto
 			else if(estaEntre(carAngle, 0.05, 0.5))
@@ -293,9 +293,6 @@ public class Jugador extends Controller {
 		return null;
 	}
 
-
-		return null;
-	}
 
 	// Para calcular la maxFutureQ en la QTable
 	private Integer getBestMoveFromTarget(Integer nextState) {
