@@ -17,7 +17,7 @@ public final class Constantes {
 	public final static int TICK_ENTRENAMIENTO = 10;
 	public final static int TICK_COMIENZO = 120;
 	public final static int TICKS_ESPERA = 100;
-	public final static int CARRERA_JUGADOR = 0;
+	public final static int CARRERA_JUGADOR = 6;
 	
 	
 	/* Constantes de control de porcentaje */
