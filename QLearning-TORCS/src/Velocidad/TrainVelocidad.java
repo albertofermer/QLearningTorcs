@@ -56,7 +56,11 @@ public class TrainVelocidad extends Controller {
 
 	Integer lastLap = 0;
 	Integer tick = 0;
+	
 	float oldSteer;
+	float oldAccel;
+	float oldBrake;
+	
 	double porcentaje = Constantes.PORCENTAJE_INICIAL;
 	boolean isStuck = false;
 
@@ -224,6 +228,8 @@ public class TrainVelocidad extends Controller {
 
 		// compute steering
 		float steer = politica_volante.getSteer(getSteerState(sensors));
+		float accel = 0.0f;
+		float brake = 0.0f;
 
 		System.out.println("Tick: " + tick);
 		System.out.println("Entrenamiento: " + contador_entrenamientos);
@@ -238,6 +244,9 @@ public class TrainVelocidad extends Controller {
 			 */
 			System.out.println("TRAIN");
 			/* TODO : AQUI HAY QUE PONER VELOCIDAD */
+			float[] accel_and_brake = train(getSpeedState(sensors), getPorcentaje(sensors), sensors);
+			accel = accel_and_brake[0];
+			brake = accel_and_brake[1];
 
 			
 			
@@ -247,8 +256,7 @@ public class TrainVelocidad extends Controller {
 			 * y poder sacar resultados consistentes.
 			 */
 			System.out.println("--JUGADOR--");
-			steer = play(sensors);
-
+			float[] accel_and_brake = play(sensors);
 			// Si el coche se sale de la pista, reiniciamos la partida.
 			if (isStuck) {
 				Action reset = new Action();
@@ -256,30 +264,18 @@ public class TrainVelocidad extends Controller {
 				isStuck = false;
 				return reset;
 			}
+			
+			accel = accel_and_brake[0];
+			brake = accel_and_brake[1];
 
 		} else {
-			// RELLENAR CON VELOCIDAD
+			accel = oldAccel;
+			brake = oldBrake;
 		}
 
 		tick++;
-
-		// set accel and brake from the joint accel/brake command
-
-//		float accel_and_brake = getAccel(sensors);
-//
-//		float accel, brake;
-//		if (accel_and_brake > 0) {
-//			accel = accel_and_brake;
-//			brake = 0;
-//		} else {
-//			accel = 0;
-//			// apply ABS to brake
-//			brake = filterABS(sensors, -accel_and_brake);
-//		}
 		
-		float[] accel_and_brake = train(getSpeedState(sensors), getPorcentaje(sensors), sensors);
-		float accel = accel_and_brake[0];
-		float brake = accel_and_brake[1];
+
 
 		clutch = clutching(sensors, clutch);
 
@@ -293,25 +289,26 @@ public class TrainVelocidad extends Controller {
 		action.brake = 0;
 		action.clutch = 0;
 
-		oldSteer = steer;
+		oldAccel = accel;
+		oldBrake = brake;
 
 		return action;
 	}
 
-	private float play(SensorModel sensors) {
-
-		if (Math.abs(sensors.getTrackPosition()) > 1) {
-
-			isStuck = true;
-			return 0.0f;
-		}
+	private float[] play(SensorModel sensors) {
 
 		Integer state = getSpeedState(sensors);
-		int steer = qtable_velocidad.getBestRewardPosition(state);
+		if (state == null) {
+			isStuck = true;
+			float[] default_value = {0f,0f}; 
+			return default_value;
+		}
+		
+		int vel = qtable_velocidad.getBestRewardPosition(state);
 
 		last_distRaced = sensors.getDistanceRaced();
 
-		return Constantes.STEER_VALUES[steer][0];
+		return Constantes.VEL_VALUES[vel];
 	}
 
 	private double getPorcentaje(SensorModel sensors) {
@@ -467,7 +464,7 @@ public class TrainVelocidad extends Controller {
 			 */
 			double rewardTrackPosition = Math.pow(1 / ((Math.abs(sensors.getTrackPosition())) + 1), 4) * 0.7;
 			double rewardAngle = Math.pow(1 / ((Math.abs(sensors.getAngleToTrackAxis())) + 1), 4) * 0.25;
-			double rewardSpeed = Math.pow((sensors.getSpeed()/160f),4)*0.05;
+			double rewardSpeed = Math.pow((sensors.getSpeed()),1)*0.05;
 
 			Double targetReward = rewardTrackPosition + rewardAngle + rewardSpeed;
 

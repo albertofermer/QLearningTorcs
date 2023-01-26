@@ -16,12 +16,12 @@ public final class Constantes {
 	/* Constantes del control de entrenamiento*/
 	public final static int TICK_ENTRENAMIENTO = 10;
 	public final static int TICK_COMIENZO = 120;
-	public final static int CARRERA_JUGADOR = 9;
+	public final static int CARRERA_JUGADOR = 6;
 	
 	
 	/* Constantes de control de porcentaje */
 	public final static double PORCENTAJE_INICIAL = 0.0;
-	public final static float INCREMENTO_PORCENTAJE = 0.001f;
+	public final static float INCREMENTO_PORCENTAJE = 0.1f;
 	public final static int MAX_CARRERAS_INCREMENTO_PORCENTAJE = 5;
 	public final static double MAX_PORCENTAJE = 0.999;
 	
