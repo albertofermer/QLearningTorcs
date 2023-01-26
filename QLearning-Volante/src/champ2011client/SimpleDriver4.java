@@ -74,6 +74,8 @@ public class SimpleDriver4 extends Controller {
 	private double last_distRaced;
 	private double last_distFromStartLine;
 	
+	private boolean carrera_terminada = false;
+	
 	
 	
 	SocketHandler mySocket;
@@ -191,6 +193,14 @@ public class SimpleDriver4 extends Controller {
 	}
 
 	public Action control(SensorModel sensors, SocketHandler mySocket) {
+		
+		if (sensors.getLastLapTime() > 0.0) {
+			System.out.println("VUELTA TERMINADA!");
+			Action restart = new Action();
+			restart.restartRace = true;
+			return restart;
+		}
+		
 		this.mySocket = mySocket;
 
 		// compute accel/brake command
@@ -357,6 +367,10 @@ public class SimpleDriver4 extends Controller {
 		// actual. //EXPLOTA
 		Integer accion = qtable_steer.getBestRewardPosition(newState);
 
+
+		if (porcentaje > 1.0)
+			porcentaje = 1.0;
+		
 		// Explora nuevos estados
 		if (this.randomGenerator.nextDouble() > porcentaje) {
 			// Elige un movimiento aleatorio
@@ -372,8 +386,6 @@ public class SimpleDriver4 extends Controller {
 		if (oldAction == null)
 			oldAction = accion;
 
-		if (porcentaje > 1.0)
-			porcentaje = 1.0;
 
 		// Double targetReward = 0.0;
 
