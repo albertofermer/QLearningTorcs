@@ -52,7 +52,6 @@ public class TrainVelocidad extends Controller {
 	Integer contador_entrenamientos = 0; // se resetea
 	Double recompensa_acumulada = 0.0;
 	Integer indice_carreras = 0; // no se resetea
-	private int contador_vueltas = 0;
 
 	Integer lastLap = 0;
 	Integer tick = 0;
@@ -123,7 +122,7 @@ public class TrainVelocidad extends Controller {
 		indice_carreras++;
 		tick = 0;
 		recompensa_acumulada = 0.0;
-		contador_vueltas = 0;
+		//contador_vueltas = 0;
 		oldTrackPosition = 0.0;
 
 		qtable_velocidad.saveQTable(name_qtable);
@@ -294,7 +293,7 @@ public class TrainVelocidad extends Controller {
 		}
 		
 		// Actualiza la posición de referencia cada X ticks.
-		if(tick > Constantes.TICK_COMIENZO && tick % Constantes.TICKS_ESPERA == 0) {
+		if(tick > Constantes.TICK_COMIENZO) {
 			oldTrackPosition = sensors.getTrackPosition();
 		}
 		
