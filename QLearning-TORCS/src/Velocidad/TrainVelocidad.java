@@ -283,8 +283,8 @@ public class TrainVelocidad extends Controller {
 		 * de 5 metros en 10 ticks, se reinicia el juego y se puntúa
 		 * negativamente.
 		 */
-		System.out.println((sensors.getTrackPosition() - oldTrackPosition));
-		if (Math.abs(sensors.getTrackPosition() - oldTrackPosition) <=0.001 ) {
+		System.out.println(Math.abs(sensors.getTrackPosition() - oldTrackPosition));
+		if (Math.abs(sensors.getTrackPosition() - oldTrackPosition) <=0.00001 ) {
 			// Si hay una diferencia minima aumenta en uno el contador.
 			count_tick++;
 		}else {
@@ -293,7 +293,7 @@ public class TrainVelocidad extends Controller {
 		}
 		
 		// Actualiza la posición de referencia cada X ticks.
-		if(tick > Constantes.TICK_COMIENZO) {
+		if(tick > Constantes.TICK_COMIENZO && tick % Constantes.TICKS_ESPERA == 0) {
 			oldTrackPosition = sensors.getTrackPosition();
 		}
 		
