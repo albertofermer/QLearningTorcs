@@ -46,7 +46,9 @@ public class SimpleDriver4 extends Controller {
 
 	Integer iRestart = 0;
 	Integer contador_entrenamientos = 0; // se resetea
+	Double recompensa_acumulada = 0.0;
 	Integer indice_carreras = 0; // no se resetea
+	private int contador_vueltas = 0;
 
 	Integer lastLap = 0;
 	Integer tick = 0;
@@ -66,31 +68,43 @@ public class SimpleDriver4 extends Controller {
 	private static QTableFrame qTableFrame_steer = new QTableFrame(qtable_steer);
 	private Random randomGenerator = new Random();
 	/////////////////////////////////////////////////////////////////////////
+	
+	private float last_steer;
+	private double last_trackPosition;
+	private double last_distRaced;
+	private double last_distFromStartLine;
+	
+	
+	
 	SocketHandler mySocket;
 
 	public SimpleDriver4() {
 		datos = new Dato();
 		qtable_steer.loadQTable();
 		qTableFrame_steer.setQTable(qtable_steer);
-		datos.writeHeader("datos_Jugador"); // escribe el header.
+		datos.writeHeader(Constantes.FILE_NAME); // escribe el header.
 	}
 
 	public void reset() {
 
 		if (contador_entrenamientos == Constantes.CARRERA_JUGADOR) {
-			
-			// Añade los datos si la ultima carrera ha sido del jugador.
-			
-			datos.write("datos_Jugador");
-			datos = new Dato();
+			/* Escribimos los datos que vamos a sacar para hacer gráficas */
+			datos.setIndice_carrera(indice_carreras);
+			datos.setTicks_duracion(tick);
+			datos.setLongitud_recorrida(last_distRaced);
+			datos.setEpsilon(1-porcentaje);
+			datos.writeDistRaced(Constantes.FILE_NAME);
 		}
-
+		
 		iRestart++;
 		contador_entrenamientos++;
 		indice_carreras++;
 		tick = 0;
+		recompensa_acumulada = 0.0;
+		contador_vueltas = 0;
 
 		qtable_steer.saveQTable();
+
 
 		if (contador_entrenamientos == Constantes.CARRERA_JUGADOR + 1)
 			contador_entrenamientos = 0;
@@ -99,7 +113,14 @@ public class SimpleDriver4 extends Controller {
 
 	public void shutdown() {
 		qtable_steer.saveQTable();
-		datos.write("datos_Jugador");
+		if (contador_entrenamientos == Constantes.CARRERA_JUGADOR) {
+			/* Escribimos los datos que vamos a sacar para hacer gráficas */
+			datos.setIndice_carrera(indice_carreras);
+			datos.setTicks_duracion(tick);
+			datos.setLongitud_recorrida(last_distRaced);
+			datos.setEpsilon(1-porcentaje);
+			datos.writeDistRaced(Constantes.FILE_NAME);
+		}
 		System.out.println("Bye bye!");
 	}
 
@@ -179,6 +200,7 @@ public class SimpleDriver4 extends Controller {
 
 		float steer;
 		// compute steering
+		
 		System.out.println("Tick: " + tick);
 		System.out.println("Entrenamiento: " + contador_entrenamientos);
 		System.out.println("Carrera #" + indice_carreras);
@@ -186,12 +208,22 @@ public class SimpleDriver4 extends Controller {
 		if (tick >= Constantes.TICK_COMIENZO && (tick % Constantes.TICK_ENTRENAMIENTO == 0)
 				&& contador_entrenamientos < Constantes.CARRERA_JUGADOR) {
 
+			/**
+			 * A partir del tick de comienzo, comenzamos a entrenar el coche. Lo haremos
+			 * cada TICK_ENTRENAMIENTO ticks para no aprender cada tick.
+			 */
 			System.out.println("TRAIN");
 			steer = train(getSteerState(sensors), getPorcentaje(sensors), sensors);
 
 		} else if (contador_entrenamientos == Constantes.CARRERA_JUGADOR) {
+			/**
+			 * Cada 10 entrenamientos, probamos a jugar con el jugador para ver su progreso
+			 * y poder sacar resultados consistentes.
+			 */
 			System.out.println("--JUGADOR--");
 			steer = play(sensors);
+
+			// Si el coche se sale de la pista, reiniciamos la partida.
 			if (isStuck) {
 				Action reset = new Action();
 				reset.restartRace = true;
@@ -238,7 +270,7 @@ public class SimpleDriver4 extends Controller {
 	}
 
 	private float play(SensorModel sensors) {
-
+		
 		if (Math.abs(sensors.getTrackPosition()) > 1) {
 
 			isStuck = true;
@@ -247,15 +279,9 @@ public class SimpleDriver4 extends Controller {
 
 		Integer state = getSteerState(sensors);
 		int steer = qtable_steer.getBestRewardPosition(state);
-
-		/* Escribimos los datos que vamos a sacar para hacer gráficas */
-		datos.addIndiceCarrera(indice_carreras);
-		datos.addAnguloVolante(steer);
-		datos.addTrackPosition(sensors.getTrackPosition());
-		datos.addEpsilon(1 - porcentaje);
-		datos.addLongitudRecorrida(sensors.getDistanceRaced());
-		datos.addDistanciaMeta(sensors.getDistanceFromStartLine());
-
+		
+		last_distRaced = sensors.getDistanceRaced();
+		
 		return Constantes.STEER_VALUES[steer];
 	}
 
@@ -371,7 +397,8 @@ public class SimpleDriver4 extends Controller {
 			System.out.println("Angulo: " + sensors.getAngleToTrackAxis());
 			System.out.println("Steer: " + Constantes.STEER_VALUES[accion]);
 			System.out.println("Old Steer: " + Constantes.STEER_VALUES[oldAction]);
-			System.out.println("Recompensa: " + targetReward);
+			System.out.println("Recompensa Actual: " + targetReward);
+			System.out.println("Recompensa Previa: " + reward);
 			System.out.println("Distancia Recorrida: " + sensors.getDistanceRaced());
 			System.out.println("Distancia desde el inicio: " + sensors.getDistanceFromStartLine());
 			System.out.println("-----------------------------");
@@ -379,7 +406,10 @@ public class SimpleDriver4 extends Controller {
 			qtable_steer.setReward(oldState, newState, accion, oldAction, targetReward,
 					getBestMoveFromTarget(newState));
 			qTableFrame_steer.setQTable(qtable_steer);
-
+			
+			recompensa_acumulada += reward;
+			
+			
 			Action action = new Action();
 			action.restartRace = true;
 			mySocket.send(action.toString());
@@ -398,6 +428,9 @@ public class SimpleDriver4 extends Controller {
 			// Se establece la recompensa para el estado anterior en funci�n del estado
 			// actual.
 
+			Double reward = qtable_steer.setReward(oldState, newState, accion, oldAction, targetReward,
+					getBestMoveFromTarget(newState));
+			
 			System.out.println("Porcentaje: " + porcentaje);
 			System.out.println("Estado: " + getSteerState(sensors));
 			System.out.println("Estado Antiguo: " + oldState);
@@ -405,15 +438,14 @@ public class SimpleDriver4 extends Controller {
 			System.out.println("Accion_Anterior : " + Constantes.STEER_VALUES[oldAction]);
 			System.out.println("Posicion: " + sensors.getTrackPosition());
 			System.out.println("Angulo: " + sensors.getAngleToTrackAxis());
-			System.out.println("Steer: " + Constantes.STEER_VALUES[accion]);
-			System.out.println("Old Steer: " + Constantes.STEER_VALUES[oldAction]);
-			System.out.println("Recompensa: " + targetReward);
+			System.out.println("Recompensa Actual: " + targetReward);
+			System.out.println("Recompensa Previa: " + reward);
+			System.out.println("Recompensa Acumulada " + recompensa_acumulada);
 			System.out.println("Distancia Recorrida: " + sensors.getDistanceRaced());
 			System.out.println("Distancia desde el inicio: " + sensors.getDistanceFromStartLine());
 			System.out.println("-----------------------------");
 
-			Double reward = qtable_steer.setReward(oldState, newState, accion, oldAction, targetReward,
-					getBestMoveFromTarget(newState));
+			recompensa_acumulada += reward;
 
 			oldState = newState;
 		}
