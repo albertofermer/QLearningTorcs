@@ -56,11 +56,13 @@ public class TrainVelocidad extends Controller {
 
 	Integer lastLap = 0;
 	Integer tick = 0;
-	
+
 	float oldSteer;
 	float oldAccel;
 	float oldBrake;
-	
+	double oldTrackPosition = 0.0;
+	int count_tick = 0;
+
 	double porcentaje = Constantes.PORCENTAJE_INICIAL;
 	boolean isStuck = false;
 
@@ -101,7 +103,7 @@ public class TrainVelocidad extends Controller {
 		qtable_velocidad.loadQTable(name_qtable);
 		qTableFrame_velocidad.setQTable(qtable_velocidad);
 		datos.writeHeader(name_datos); // escribe el header.
-		
+
 		qtable_velocidad.saveQTable(name_qtable);
 	}
 
@@ -122,6 +124,7 @@ public class TrainVelocidad extends Controller {
 		tick = 0;
 		recompensa_acumulada = 0.0;
 		contador_vueltas = 0;
+		oldTrackPosition = 0.0;
 
 		qtable_velocidad.saveQTable(name_qtable);
 
@@ -132,7 +135,7 @@ public class TrainVelocidad extends Controller {
 
 	public void shutdown() {
 		qtable_velocidad.saveQTable(name_qtable);
-		//Politica.savePolitica(name_politica, qtable_velocidad);
+		// Politica.savePolitica(name_politica, qtable_velocidad);
 
 		if (contador_entrenamientos == Constantes.CARRERA_JUGADOR) {
 			/* Escribimos los datos que vamos a sacar para hacer grÃ¡ficas */
@@ -248,9 +251,7 @@ public class TrainVelocidad extends Controller {
 			accel = accel_and_brake[0];
 			brake = accel_and_brake[1];
 
-			
-			
-		} else if (contador_entrenamientos == Constantes.CARRERA_JUGADOR) {
+		} else if (tick >= Constantes.TICK_COMIENZO && contador_entrenamientos == Constantes.CARRERA_JUGADOR) {
 			/**
 			 * Cada 10 entrenamientos, probamos a jugar con el jugador para ver su progreso
 			 * y poder sacar resultados consistentes.
@@ -264,7 +265,7 @@ public class TrainVelocidad extends Controller {
 				isStuck = false;
 				return reset;
 			}
-			
+
 			accel = accel_and_brake[0];
 			brake = accel_and_brake[1];
 
@@ -274,12 +275,29 @@ public class TrainVelocidad extends Controller {
 		}
 
 		tick++;
-		
-
 
 		clutch = clutching(sensors, clutch);
 
-//	        
+		
+		/**
+		 * Si el coche no se mueve, al menos, una diferencia
+		 * de 5 metros en 10 ticks, se reinicia el juego y se puntúa
+		 * negativamente.
+		 */
+		System.out.println((sensors.getTrackPosition() - oldTrackPosition));
+		if (Math.abs(sensors.getTrackPosition() - oldTrackPosition) <=0.001 ) {
+			// Si hay una diferencia minima aumenta en uno el contador.
+			count_tick++;
+		}else {
+			// Si aumenta dicha diferencia, se resetea el contador.
+			count_tick = 0;
+		}
+		
+		// Actualiza la posición de referencia cada X ticks.
+		if(tick > Constantes.TICK_COMIENZO && tick % Constantes.TICKS_ESPERA == 0) {
+			oldTrackPosition = sensors.getTrackPosition();
+		}
+		
 		// build a CarControl variable and return it
 		Action action = new Action();
 
@@ -298,16 +316,16 @@ public class TrainVelocidad extends Controller {
 	private float[] play(SensorModel sensors) {
 
 		Integer state = getSpeedState(sensors);
-		if (state == null) {
+		if (state == 9 || count_tick >=10) {
 			isStuck = true;
-			float[] default_value = {0f,0f}; 
+			float[] default_value = { 0f, 0f };
 			return default_value;
 		}
-		
+
 		int vel = qtable_velocidad.getBestRewardPosition(state);
 
 		last_distRaced = sensors.getDistanceRaced();
-
+		System.out.println("PLAY -> " + Constantes.VEL_VALUES[vel][0]);
 		return Constantes.VEL_VALUES[vel];
 	}
 
@@ -334,19 +352,28 @@ public class TrainVelocidad extends Controller {
 
 		double distVec9 = sensors.getTrackEdgeSensors()[9];
 
-		if (estaEntre(distVec9, 20, 40)) return 0;
-		if (estaEntre(distVec9, 40, 60)) return 1;
-		if (estaEntre(distVec9, 60, 80)) return 2;
-		if (estaEntre(distVec9, 80, 100)) return 3;
-		if (estaEntre(distVec9, 100, 120)) return 4;
-		if (estaEntre(distVec9, 120, 140)) return 5;
-		if (estaEntre(distVec9, 140, 160)) return 6;
-		if (estaEntre(distVec9, 160, 180)) return 7;
-		if (estaEntre(distVec9, 180, 200)) return 8;
+		if (estaEntre(distVec9, 20, 40))
+			return 0;
+		if (estaEntre(distVec9, 40, 60))
+			return 1;
+		if (estaEntre(distVec9, 60, 80))
+			return 2;
+		if (estaEntre(distVec9, 80, 100))
+			return 3;
+		if (estaEntre(distVec9, 100, 120))
+			return 4;
+		if (estaEntre(distVec9, 120, 140))
+			return 5;
+		if (estaEntre(distVec9, 140, 160))
+			return 6;
+		if (estaEntre(distVec9, 160, 180))
+			return 7;
+		if (estaEntre(distVec9, 180, 200))
+			return 8;
 
-			return null;
+		return 9;
 	}
-	
+
 	private Integer getSteerState(SensorModel sensors) {
 		// derecha negativo izquierda positivo
 		double trackPosition = sensors.getTrackPosition();
@@ -421,7 +448,7 @@ public class TrainVelocidad extends Controller {
 
 		// Double targetReward = 0.0;
 
-		if (Math.abs(sensors.getTrackPosition()) > 1) {
+		if (Math.abs(sensors.getTrackPosition()) > 1 || newState == 9) {
 			/**
 			 * Si el coche se sale de la carretera, entonces se recompensa negativamente.
 			 */
@@ -464,7 +491,7 @@ public class TrainVelocidad extends Controller {
 			 */
 			double rewardTrackPosition = Math.pow(1 / ((Math.abs(sensors.getTrackPosition())) + 1), 4) * 0.7;
 			double rewardAngle = Math.pow(1 / ((Math.abs(sensors.getAngleToTrackAxis())) + 1), 4) * 0.25;
-			double rewardSpeed = Math.pow((sensors.getSpeed()),1)*0.05;
+			double rewardSpeed = Math.pow((sensors.getSpeed()), 1) * 0.05;
 
 			Double targetReward = rewardTrackPosition + rewardAngle + rewardSpeed;
 
@@ -479,7 +506,7 @@ public class TrainVelocidad extends Controller {
 			System.out.println("Estado Antiguo: " + oldState);
 			System.out.println("Accion_Actual : " + Constantes.VEL_VALUES[accion]);
 			System.out.println("Distancia Vector#9: " + sensors.getTrackEdgeSensors()[9]);
-			System.out.println("Acelerador: " );
+			System.out.println("Acelerador: ");
 			System.out.println("Recompensa Actual: " + targetReward);
 			System.out.println("Recompensa Previa: " + reward);
 			System.out.println("Recompensa Acumulada " + recompensa_acumulada);
