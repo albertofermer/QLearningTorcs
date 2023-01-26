@@ -23,7 +23,7 @@ public class Politica {
 		        steers.add(Float.parseFloat(datos[1]));
 		      }
 		} catch (FileNotFoundException e) {
-			System.err.println("No existe una política definida.");
+			System.err.println("No existe una politica definida.");
 		}
 	}
 	

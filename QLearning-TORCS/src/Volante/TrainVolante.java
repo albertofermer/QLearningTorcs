@@ -68,7 +68,7 @@ public class TrainVolante extends Controller {
 
 	/* Q-Table - Volante */
 	/////////////////////////////////////////////////////////////////////////
-	private static QTable qtable_steer = new QTable(Constantes.NUM_STATES_STEER, Constantes.NUM_ANGLES, Constantes.STEER_VALUES); // Numero de estados de giro de volante (3).
+	private static QTable qtable_steer = new QTable("Volante",Constantes.NUM_STATES_STEER, Constantes.NUM_ANGLES, Constantes.STEER_VALUES); // Numero de estados de giro de volante (3).
 	private static QTableFrame qTableFrame_steer = new QTableFrame(qtable_steer, Constantes.STEER_VALUES, Constantes.NUM_ANGLES);
 	private Random randomGenerator = new Random();
 	/////////////////////////////////////////////////////////////////////////
@@ -80,8 +80,8 @@ public class TrainVolante extends Controller {
 	
 	private boolean carrera_terminada = false;
 	
-	private String name_qtable = "qtable_volante.csv";
-	private String name_politica = "politica_volante.txt";
+	private String name_qtable = "qtable_volante";
+	private String name_politica = "politica_volante";
 	String name_datos = Constantes.FILE_NAME + "_volante";
 	
 	SocketHandler mySocket;

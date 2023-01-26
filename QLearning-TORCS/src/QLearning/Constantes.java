@@ -38,11 +38,10 @@ public final class Constantes {
 	public final static double STEER_IZQUIERDA = 0.5;
 
 	/* Constantes de la QTable - Velocidad */
-	public final static int NUM_STATES_VEL = 15;
+	public final static int NUM_STATES_VEL = 9;
 											//{acel, 
-	public final static float[][] VEL_VALUES = {{0f, .1f}, {0f, .2f}, {0f, .3f}, {0f, .4f}, {0f, 0.5f}, {0f, 0.6f}, {0f, 0.7f}, {0f, 0.8f}, 
-			{0f, 0.9f}, {0f, 1f}, {0f, 0f}, {0.1f, 0f}, {0.2f, 0f}, {0.3f, 0f}, {0.4f, 0f}, {0.5f, 0f}, {0.6f, 0f}, {0.7f, 0f}, {0.8f, 0f}, 
-			{0.9f, 0f}, {1f, 0f}};
+	public final static float[][] VEL_VALUES = {{0f, .1f}, {0f, .2f}, {0f, .4f}, {0f, .8f}, {0f, 1f}, 
+			{0f, 0f}, {0.1f, 0f}, {0.2f, 0f}, {0.4f, 0f}, {0.8f, 0f}, {1f, 0f}};
 	
 	public final static int NUM_VEL = VEL_VALUES.length;
 	

@@ -15,8 +15,11 @@ public class QTable {
 	Random randomGenerator;
 	int num_acciones;
 	float[][] acciones;
+	
+	String nombre = "";
 
-	public QTable(Integer maxPositions, int num_acciones, float[][] acciones) {
+	public QTable(String name, Integer maxPositions, int num_acciones, float[][] acciones) {
+		nombre = name;
 		this.num_acciones = num_acciones;
 		this.acciones = acciones;
 		this.qTable = new QCell[maxPositions];
@@ -141,7 +144,7 @@ public class QTable {
 		        System.out.println(data);
 		      }
 		} catch (FileNotFoundException e) {
-			System.err.println("No existe una tabla definida. Se crear� de 0.");
+			System.err.println("No existe una tabla definida. Se creara de 0.");
 		}
 	      
 	}

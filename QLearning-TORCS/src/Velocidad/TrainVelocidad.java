@@ -68,33 +68,37 @@ public class TrainVelocidad extends Controller {
 
 	/* Q-Table - Volante */
 	/////////////////////////////////////////////////////////////////////////
-	private static QTable qtable_velocidad = new QTable(Constantes.NUM_STATES_STEER, Constantes.NUM_ANGLES, Constantes.VEL_VALUES); // Numero de estados de giro de volante (3).
-	private static QTableFrame qTableFrame_velocidad = new QTableFrame(qtable_velocidad, Constantes.STEER_VALUES, Constantes.NUM_ANGLES);
+	private static QTable qtable_velocidad = new QTable("Velocidad", Constantes.NUM_STATES_VEL, Constantes.NUM_VEL,
+			Constantes.VEL_VALUES);
+	private static QTableFrame qTableFrame_velocidad = new QTableFrame(qtable_velocidad, Constantes.VEL_VALUES,
+			Constantes.NUM_VEL);
 	private Random randomGenerator = new Random();
 	/////////////////////////////////////////////////////////////////////////
-	
+
 	private float last_steer;
 	private double last_trackPosition;
 	private double last_distRaced;
 	private double last_distFromStartLine;
-	
+
 	private boolean carrera_terminada = false;
-	
-	private String name_qtable = "qtable_velocidad.csv";
-	private String name_politica = "politica_velocidad.txt";
+
+	private String name_qtable = "qtable_velocidad";
+	private String name_politica = "volante";
 	String name_datos = Constantes.FILE_NAME + "_velocidad";
-	
+
 	SocketHandler mySocket;
 	Politica politica_volante;
 
 	public TrainVelocidad() {
 		politica_volante = new Politica();
 		politica_volante.loadPolitica(name_politica);
-		
+
 		datos = new Dato();
 		qtable_velocidad.loadQTable(name_qtable);
 		qTableFrame_velocidad.setQTable(qtable_velocidad);
 		datos.writeHeader(name_datos); // escribe el header.
+		
+		qtable_velocidad.saveQTable(name_qtable);
 	}
 
 	public void reset() {
@@ -104,10 +108,10 @@ public class TrainVelocidad extends Controller {
 			datos.setIndice_carrera(indice_carreras);
 			datos.setTicks_duracion(tick);
 			datos.setLongitud_recorrida(last_distRaced);
-			datos.setEpsilon(1-porcentaje);
+			datos.setEpsilon(1 - porcentaje);
 			datos.writeDistRaced(name_datos);
 		}
-		
+
 		iRestart++;
 		contador_entrenamientos++;
 		indice_carreras++;
@@ -117,7 +121,6 @@ public class TrainVelocidad extends Controller {
 
 		qtable_velocidad.saveQTable(name_qtable);
 
-
 		if (contador_entrenamientos == Constantes.CARRERA_JUGADOR + 1)
 			contador_entrenamientos = 0;
 
@@ -125,17 +128,17 @@ public class TrainVelocidad extends Controller {
 
 	public void shutdown() {
 		qtable_velocidad.saveQTable(name_qtable);
-		Politica.savePolitica(name_politica, qtable_velocidad);
-		
+		//Politica.savePolitica(name_politica, qtable_velocidad);
+
 		if (contador_entrenamientos == Constantes.CARRERA_JUGADOR) {
 			/* Escribimos los datos que vamos a sacar para hacer gráficas */
 			datos.setIndice_carrera(indice_carreras);
 			datos.setTicks_duracion(tick);
 			datos.setLongitud_recorrida(last_distRaced);
-			datos.setEpsilon(1-porcentaje);
+			datos.setEpsilon(1 - porcentaje);
 			datos.writeDistRaced(name_datos);
 		}
-		
+
 		System.out.println("Bye bye!");
 	}
 
@@ -206,14 +209,14 @@ public class TrainVelocidad extends Controller {
 	}
 
 	public Action control(SensorModel sensors, SocketHandler mySocket) {
-		
+
 		if (sensors.getLastLapTime() > 0.0) {
 			System.out.println("VUELTA TERMINADA!");
 			Action restart = new Action();
 			restart.restartRace = true;
 			return restart;
 		}
-		
+
 		this.mySocket = mySocket;
 
 		// compute gear
@@ -221,7 +224,7 @@ public class TrainVelocidad extends Controller {
 
 		// compute steering
 		float steer = politica_volante.getSteer(getSteerState(sensors));
-		
+
 		System.out.println("Tick: " + tick);
 		System.out.println("Entrenamiento: " + contador_entrenamientos);
 		System.out.println("Carrera #" + indice_carreras);
@@ -234,8 +237,10 @@ public class TrainVelocidad extends Controller {
 			 * cada TICK_ENTRENAMIENTO ticks para no aprender cada tick.
 			 */
 			System.out.println("TRAIN");
-			/* AQUI HAY QUE PONER VELOCIDAD */
+			/* TODO : AQUI HAY QUE PONER VELOCIDAD */
 
+			
+			
 		} else if (contador_entrenamientos == Constantes.CARRERA_JUGADOR) {
 			/**
 			 * Cada 10 entrenamientos, probamos a jugar con el jugador para ver su progreso
@@ -257,22 +262,25 @@ public class TrainVelocidad extends Controller {
 		}
 
 		tick++;
-		
-		
+
 		// set accel and brake from the joint accel/brake command
 
-		float accel_and_brake = getAccel(sensors);
+//		float accel_and_brake = getAccel(sensors);
+//
+//		float accel, brake;
+//		if (accel_and_brake > 0) {
+//			accel = accel_and_brake;
+//			brake = 0;
+//		} else {
+//			accel = 0;
+//			// apply ABS to brake
+//			brake = filterABS(sensors, -accel_and_brake);
+//		}
 		
-		float accel, brake;
-		if (accel_and_brake > 0) {
-			accel = accel_and_brake;
-			brake = 0;
-		} else {
-			accel = 0;
-			// apply ABS to brake
-			brake = filterABS(sensors, -accel_and_brake);
-		}
-	        
+		float[] accel_and_brake = train(getSpeedState(sensors), getPorcentaje(sensors), sensors);
+		float accel = accel_and_brake[0];
+		float brake = accel_and_brake[1];
+
 		clutch = clutching(sensors, clutch);
 
 //	        
@@ -291,18 +299,18 @@ public class TrainVelocidad extends Controller {
 	}
 
 	private float play(SensorModel sensors) {
-		
+
 		if (Math.abs(sensors.getTrackPosition()) > 1) {
 
 			isStuck = true;
 			return 0.0f;
 		}
 
-		Integer state = getSteerState(sensors);
+		Integer state = getSpeedState(sensors);
 		int steer = qtable_velocidad.getBestRewardPosition(state);
-		
+
 		last_distRaced = sensors.getDistanceRaced();
-		
+
 		return Constantes.STEER_VALUES[steer][0];
 	}
 
@@ -325,6 +333,23 @@ public class TrainVelocidad extends Controller {
 
 	}
 
+	private Integer getSpeedState(SensorModel sensors) {
+
+		double distVec9 = sensors.getTrackEdgeSensors()[9];
+
+		if (estaEntre(distVec9, 20, 40)) return 0;
+		if (estaEntre(distVec9, 40, 60)) return 1;
+		if (estaEntre(distVec9, 60, 80)) return 2;
+		if (estaEntre(distVec9, 80, 100)) return 3;
+		if (estaEntre(distVec9, 100, 120)) return 4;
+		if (estaEntre(distVec9, 120, 140)) return 5;
+		if (estaEntre(distVec9, 140, 160)) return 6;
+		if (estaEntre(distVec9, 160, 180)) return 7;
+		if (estaEntre(distVec9, 180, 200)) return 8;
+
+			return null;
+	}
+	
 	private Integer getSteerState(SensorModel sensors) {
 		// derecha negativo izquierda positivo
 		double trackPosition = sensors.getTrackPosition();
@@ -370,7 +395,7 @@ public class TrainVelocidad extends Controller {
 		return null;
 	}
 
-	public float train(Integer newState, Double porcentaje, SensorModel sensors) {
+	public float[] train(Integer newState, Double porcentaje, SensorModel sensors) {
 
 		// Paso 1. Escoger un movimiento.
 
@@ -378,25 +403,24 @@ public class TrainVelocidad extends Controller {
 		// actual. //EXPLOTA
 		Integer accion = qtable_velocidad.getBestRewardPosition(newState);
 
-
 		if (porcentaje > 1.0)
 			porcentaje = 1.0;
-		
+
 		// Explora nuevos estados
 		if (this.randomGenerator.nextDouble() > porcentaje) {
 			// Elige un movimiento aleatorio
 			System.out.println("EXPLORA");
-			accion = this.randomGenerator.nextInt(Constantes.NUM_ANGLES);
+			accion = this.randomGenerator.nextInt(Constantes.NUM_VEL);
 		}
 
-		// Si el estado anterior es nulo (es la primera evaluaci�n) entonces lo hace con
+		// Si el estado anterior es nulo (es la primera evaluaci�n) entonces lo hace
+		// con
 		// el mismo estado actual.
 		if (oldState == null)
 			oldState = newState;
 
 		if (oldAction == null)
 			oldAction = accion;
-
 
 		// Double targetReward = 0.0;
 
@@ -415,11 +439,10 @@ public class TrainVelocidad extends Controller {
 					getBestMoveFromTarget(newState));
 
 			System.out.println("Porcentaje: " + porcentaje);
-			System.out.println("Estado: " + getSteerState(sensors));
+			System.out.println("Estado: " + getSpeedState(sensors));
 			System.out.println("Posicion: " + sensors.getTrackPosition());
 			System.out.println("Angulo: " + sensors.getAngleToTrackAxis());
-			System.out.println("Steer: " + Constantes.STEER_VALUES[accion]);
-			System.out.println("Old Steer: " + Constantes.STEER_VALUES[oldAction]);
+			System.out.println("Distancia Vector#9: " + sensors.getTrackEdgeSensors()[9]);
 			System.out.println("Recompensa Actual: " + targetReward);
 			System.out.println("Recompensa Previa: " + reward);
 			System.out.println("Distancia Recorrida: " + sensors.getDistanceRaced());
@@ -429,10 +452,9 @@ public class TrainVelocidad extends Controller {
 			qtable_velocidad.setReward(oldState, newState, accion, oldAction, targetReward,
 					getBestMoveFromTarget(newState));
 			qTableFrame_velocidad.setQTable(qtable_velocidad);
-			
+
 			recompensa_acumulada += reward;
-			
-			
+
 			Action action = new Action();
 			action.restartRace = true;
 			mySocket.send(action.toString());
@@ -444,28 +466,26 @@ public class TrainVelocidad extends Controller {
 			 * centro de la carretera (cuanto m�s cercano a 0, m�s recompensa).
 			 */
 			double rewardTrackPosition = Math.pow(1 / ((Math.abs(sensors.getTrackPosition())) + 1), 4) * 0.7;
-			double rewardAngle = Math.pow(1 / ((Math.abs(sensors.getAngleToTrackAxis())) + 1), 4) * 0.3;
+			double rewardAngle = Math.pow(1 / ((Math.abs(sensors.getAngleToTrackAxis())) + 1), 4) * 0.25;
+			double rewardSpeed = Math.pow((sensors.getSpeed()/160f),4)*0.05;
 
-			Double targetReward = rewardTrackPosition + rewardAngle;
+			Double targetReward = rewardTrackPosition + rewardAngle + rewardSpeed;
 
 			// Se establece la recompensa para el estado anterior en funci�n del estado
 			// actual.
 
 			Double reward = qtable_velocidad.setReward(oldState, newState, accion, oldAction, targetReward,
 					getBestMoveFromTarget(newState));
-			
+
 			System.out.println("Porcentaje: " + porcentaje);
-			System.out.println("Estado: " + getSteerState(sensors));
+			System.out.println("Estado: " + getSpeedState(sensors));
 			System.out.println("Estado Antiguo: " + oldState);
-			System.out.println("Accion_Actual : " + Constantes.STEER_VALUES[accion]);
-			System.out.println("Accion_Anterior : " + Constantes.STEER_VALUES[oldAction]);
-			System.out.println("Posicion: " + sensors.getTrackPosition());
-			System.out.println("Angulo: " + sensors.getAngleToTrackAxis());
+			System.out.println("Accion_Actual : " + Constantes.VEL_VALUES[accion]);
+			System.out.println("Distancia Vector#9: " + sensors.getTrackEdgeSensors()[9]);
+			System.out.println("Acelerador: " );
 			System.out.println("Recompensa Actual: " + targetReward);
 			System.out.println("Recompensa Previa: " + reward);
 			System.out.println("Recompensa Acumulada " + recompensa_acumulada);
-			System.out.println("Distancia Recorrida: " + sensors.getDistanceRaced());
-			System.out.println("Distancia desde el inicio: " + sensors.getDistanceFromStartLine());
 			System.out.println("-----------------------------");
 
 			recompensa_acumulada += reward;
@@ -483,7 +503,7 @@ public class TrainVelocidad extends Controller {
 
 		oldAction = accion;
 
-		return Constantes.STEER_VALUES[accion][0];
+		return Constantes.VEL_VALUES[accion];
 
 	}
 
