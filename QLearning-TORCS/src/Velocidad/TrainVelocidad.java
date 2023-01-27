@@ -122,7 +122,7 @@ public class TrainVelocidad extends Controller {
 		indice_carreras++;
 		tick = 0;
 		recompensa_acumulada = 0.0;
-		//contador_vueltas = 0;
+		// contador_vueltas = 0;
 		oldTrackPosition = 0.0;
 
 		qtable_velocidad.saveQTable(name_qtable);
@@ -277,26 +277,24 @@ public class TrainVelocidad extends Controller {
 
 		clutch = clutching(sensors, clutch);
 
-		
 		/**
-		 * Si el coche no se mueve, al menos, una diferencia
-		 * de 5 metros en 10 ticks, se reinicia el juego y se puntúa
-		 * negativamente.
+		 * Si el coche no se mueve, al menos, una diferencia de 5 metros en 10 ticks, se
+		 * reinicia el juego y se puntúa negativamente.
 		 */
 		System.out.println(Math.abs(sensors.getTrackPosition() - oldTrackPosition));
-		if (Math.abs(sensors.getTrackPosition() - oldTrackPosition) <=0.00001 ) {
+		if (Math.abs(sensors.getTrackPosition() - oldTrackPosition) <= 0.00001) {
 			// Si hay una diferencia minima aumenta en uno el contador.
 			count_tick++;
-		}else {
+		} else {
 			// Si aumenta dicha diferencia, se resetea el contador.
 			count_tick = 0;
 		}
-		
+
 		// Actualiza la posición de referencia cada X ticks.
-		if(tick > Constantes.TICK_COMIENZO && tick % Constantes.TICKS_ESPERA == 0) {
+		if (tick > Constantes.TICK_COMIENZO && tick % Constantes.TICKS_ESPERA == 0) {
 			oldTrackPosition = sensors.getTrackPosition();
 		}
-		
+
 		// build a CarControl variable and return it
 		Action action = new Action();
 
@@ -315,7 +313,7 @@ public class TrainVelocidad extends Controller {
 	private float[] play(SensorModel sensors) {
 
 		Integer state = getSpeedState(sensors);
-		if (state == 9 || count_tick >=10) {
+		if (state == 9 || count_tick >= 10) {
 			isStuck = true;
 			float[] default_value = { 0f, 0f };
 			return default_value;
