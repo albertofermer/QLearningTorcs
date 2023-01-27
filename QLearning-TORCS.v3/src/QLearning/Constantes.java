@@ -21,8 +21,8 @@ public final class Constantes {
 	
 	
 	/* Constantes de control de porcentaje */
-	public final static double PORCENTAJE_INICIAL = 0.7;
-	public final static float INCREMENTO_PORCENTAJE = 0.05f;
+	public final static double PORCENTAJE_INICIAL = 0.5;
+	public final static float INCREMENTO_PORCENTAJE = 0.1f;
 	public final static int MAX_CARRERAS_INCREMENTO_PORCENTAJE = 5;
 	public final static double MAX_PORCENTAJE = 0.999;
 	
@@ -39,7 +39,7 @@ public final class Constantes {
 	public final static double STEER_IZQUIERDA = 0.5;
 
 	/* Constantes de la QTable - Velocidad */
-	public final static int NUM_STATES_VEL = 10;
+	public final static int NUM_STATES_VEL = 11;
 											//{acel, 
 	public final static float[][] VEL_VALUES = {{0f, .1f}, {0f, .2f}, {0f, .4f}, {0f, .8f}, {0f, 1f}, 
 			{0f, 0f}, {0.1f, 0f}, {0.2f, 0f}, {0.4f, 0f}, {0.8f, 0f}, {1f, 0f}};
