@@ -293,7 +293,7 @@ public class TrainVelocidad extends Controller {
 
 		Integer state = getSpeedState(sensors);
 		
-		if (state == 9 || count_tick > Constantes.TICKS_ESPERA || tick > bestLapTick) {
+		if (state == 9 || count_tick > Constantes.TICKS_ESPERA ) {
 			isStuck = true;
 			float[] default_value = { 0f, 0f };
 			return default_value;
@@ -420,7 +420,7 @@ public class TrainVelocidad extends Controller {
 			oldAction = accion;
 
 
-		if (newState == 9 || count_tick > Constantes.TICKS_ESPERA) {
+		if (newState == 9 || count_tick > Constantes.TICKS_ESPERA || tick > bestLapTick) {
 			/**
 			 * Si el coche se sale de la carretera, entonces se recompensa negativamente.
 			 */
