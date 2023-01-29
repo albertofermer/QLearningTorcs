@@ -49,7 +49,8 @@ public class TrainMarchas extends Controller {
 	Integer oldState;
 	Integer oldAction;
 	double oldSpeed;
-	int oldGear;
+	int oldGearT;
+	int oldGearP;
 
 	Integer iRestart = 0;
 	Integer contador_entrenamientos = 0; // se resetea
@@ -129,6 +130,10 @@ public class TrainMarchas extends Controller {
 		recompensa_acumulada = 0.0;
 		// contador_vueltas = 0;
 		oldTrackPosition = 0.0;
+		
+		//Marcha inicial es N(0) ¿Punto Muerto?
+		oldGearT = 0;
+		oldGearP = 0;
 
 		qtable_marchas.saveQTable(name_qtable);
 
@@ -189,10 +194,7 @@ public class TrainMarchas extends Controller {
 
 		this.mySocket = mySocket;
 
-		// compute gear
-		int gear = (int) train(getGearState(sensors), getPorcentaje(sensors), sensors);
-
-		// compute steering
+		// compute steering, accel and brake
 		float steer = politica_volante.getAccion(getSteerState(sensors))[0];
 		float accel = politica_velocidad.getAccion(getSpeedState(sensors))[0];
 		float brake = politica_velocidad.getAccion(getSpeedState(sensors))[1];
@@ -200,7 +202,9 @@ public class TrainMarchas extends Controller {
 		System.out.println("Tick: " + tick);
 		System.out.println("Entrenamiento: " + contador_entrenamientos);
 		System.out.println("Carrera #" + indice_carreras);
-
+		
+		int gear;
+		
 		if (tick >= Constantes.TICK_COMIENZO && (tick % Constantes.TICK_ENTRENAMIENTO == 0)
 				&& contador_entrenamientos < Constantes.CARRERA_JUGADOR) {
 
@@ -209,15 +213,28 @@ public class TrainMarchas extends Controller {
 			 * cada TICK_ENTRENAMIENTO ticks para no aprender cada tick.
 			 */
 			System.out.println("TRAIN");
-			gear = (int) train(getGearState(sensors), getPorcentaje(sensors), sensors);
-
+			// compute gear
+			int acc_gear = (int) train(getGearState(sensors), getPorcentaje(sensors), sensors);
+			gear = oldGearT;
+			
+			System.out.println("Estado: ");
+			System.out.println("Accion GEAR: " + acc_gear);
+			gear = aplicaAccionGear(acc_gear, gear);
+			System.out.println("oldGear: " + oldGearT);
+			System.out.println("GEAR: " + gear);
+			oldGearT = gear;
+			
 		} else if (tick >= Constantes.TICK_COMIENZO && contador_entrenamientos == Constantes.CARRERA_JUGADOR) {
 			/**
 			 * Cada 10 entrenamientos, probamos a jugar con el jugador para ver su progreso
 			 * y poder sacar resultados consistentes.
 			 */
 			System.out.println("--JUGADOR--");
-			gear = (int) play(sensors);
+			int acc_gear = (int) play(sensors);
+			gear = oldGearP;
+			
+			gear = aplicaAccionGear(acc_gear, gear);
+			
 			// Si el coche se sale de la pista, reiniciamos la partida.
 			if (isStuck) {
 				Action reset = new Action();
@@ -225,9 +242,11 @@ public class TrainMarchas extends Controller {
 				isStuck = false;
 				return reset;
 			}
+			
+			oldGearP = gear;
 
 		} else {
-			gear = oldGear;
+			gear = oldGearT;
 		}
 
 		tick++;
@@ -261,15 +280,30 @@ public class TrainMarchas extends Controller {
 		action.brake = 0;
 		action.clutch = 0;
 
-		oldGear = gear;
+		oldGearT = gear;
 		System.out.println("PLAY -> " + gear);
 
 		return action;
 	}
 
+	private int aplicaAccionGear(int acc_gear, int gear) {
+		
+		if(acc_gear == -1)
+			gear--;
+		else if(acc_gear == 1)
+			gear++;
+			
+		if(gear < -1)
+			gear = -1;
+		else if(gear >6)
+			gear = 6;
+		
+		return gear;
+	}
+
 	private float play(SensorModel sensors) {
 
-		Integer state = getSpeedState(sensors);
+		Integer state = getGearState(sensors);
 
 		if (/*state == 10*/ Math.abs(sensors.getTrackPosition()) == 1.3 || count_tick > Constantes.TICKS_ESPERA) {
 			isStuck = true;
@@ -305,18 +339,20 @@ public class TrainMarchas extends Controller {
 		double actualSpeed = sensors.getSpeed();
 		double rpm = sensors.getRPM();
 		
-		if(estaEntre(rpm, 2000, 3500)) {
-			if(actualSpeed < oldSpeed)
+		
+		if(actualSpeed < oldSpeed) {
+			if(estaEntre(rpm, 0, 2000))
 				return 0;
-			else // actualSpeed >= oldSpeed
+			else
 				return 1;
-		}else if(estaEntre(rpm, 5500, 7000)) {
-			if(actualSpeed < oldSpeed)
+		}else if(Math.abs(actualSpeed - oldSpeed) > 1) {
+			if(estaEntre(rpm, 7000, 10000))
 				return 2;
-			else // actualSpeed >= oldSpeed
+			else
 				return 3;
-		}else //estaEntre(rpm, 3500, 5500)
+		}else {
 			return 4;
+		}	
 	}
 
 	private Integer getSpeedState(SensorModel sensors) {
@@ -463,12 +499,35 @@ public class TrainMarchas extends Controller {
 			 * distancia, mayor recompensa) e inversamente proporcional a la distancia al
 			 * centro de la carretera (cuanto mas cercano a 0, mas recompensa).
 			 */
-
-			double rewardGear = 0;
 			
-			rewardGear = sensors.getDistanceFromStartLine()/sensors.getCurrentLapTime();
+			Double targetReward = sensors.getDistanceFromStartLine()/sensors.getCurrentLapTime();
 			
-			Double targetReward = rewardGear;
+			// La recompensa podría ser en función de las RPM, es decir, si se encuentra en buenas revoluciones recompensar que no cambie de marcha
+			// Si revoluciones bajas y disminuye --> recompensar
+			// Si revoluciones bajas y aumenta o mantiene --> castigar
+			// Si revoluciones altas y aumenta --> recompensar
+			// Si revoulciones altas y disminuye o mantiene --> castigar
+			
+//			switch(getGearState(sensors)) {
+//			case 0: //Revoluciones bajas y velocidad disminuye
+//				if(oldGearT < actualGear)
+//					targetReward = 1.0;
+//				else
+//					targetReward = -5.0;
+//				break;
+//			case 2: //Revoluciones altas y velocidad aumenta
+//				if(oldGearT > actualGear)
+//					targetReward = 1.0;
+//				else
+//					targetReward = -5.0;
+//				break;
+//			default: //1 o 3
+//				if(oldGearT == actualGear)
+//					targetReward = 1.0;
+//				else
+//					targetReward = -5.0;
+//				break;
+//			}
 
 			// Se establece la recompensa para el estado anterior en funci�n del estado
 			// actual.
