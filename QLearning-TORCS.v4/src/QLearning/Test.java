@@ -14,13 +14,7 @@ public class Test {
 		
 		Politica.savePolitica("volante", qtable_steer, Constantes.STEER_VALUES);
 		Politica.savePolitica("velocidad", qtable_velocidad, Constantes.VEL_VALUES);
-		
-		System.out.println("###########");
-		Politica p = new Politica();
-		//p.loadPolitica("volante");
-		
-		System.out.println("###########");
-		p.loadPolitica("velocidad");	
+
 	}
 
 }

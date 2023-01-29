@@ -21,7 +21,7 @@ public final class Constantes {
 	
 	/* Constantes de la QTable - Marchas */
 	public final static int NUM_STATES_GEAR = 5; 
-	public final static float[][] GEAR_VALUES = {{0f}, {1f}, {2f}, {3f}, {4f}, {5f}, {6f}, {7f}};
+	public final static float[][] GEAR_VALUES = {{0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}};
 	public final static int NUM_GEAR = GEAR_VALUES.length;
 	
 	/* Constantes del control de entrenamiento*/
