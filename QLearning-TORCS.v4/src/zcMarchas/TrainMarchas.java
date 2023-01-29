@@ -311,6 +311,24 @@ public class TrainMarchas extends Controller {
 		return (minimo <= valor && valor <= maximo);
 
 	}
+	
+	private Integer getGearState(SensorModel sensors) {
+		double actualSpeed = sensors.getSpeed();
+		double rpm = sensors.getRPM();
+		
+		if(estaEntre(rpm, 2000, 3500)) {
+			if(actualSpeed < oldSpeed)
+				return 0;
+			else // actualSpeed >= oldSpeed
+				return 1;
+		}else if(estaEntre(rpm, 5500, 7000)) {
+			if(actualSpeed < oldSpeed)
+				return 2;
+			else // actualSpeed >= oldSpeed
+				return 3;
+		}else //estaEntre(rpm, 3500, 5500)
+			return 4;
+	}
 
 	private Integer getSpeedState(SensorModel sensors) {
 
@@ -459,7 +477,7 @@ public class TrainMarchas extends Controller {
 
 			double rewardGear = 0;
 			
-			//rewardSpeed = sensors.getDistanceFromStartLine()/sensors.getCurrentLapTime();
+			rewardGear = sensors.getDistanceFromStartLine()/sensors.getCurrentLapTime();
 			
 			Double targetReward = rewardGear;
 

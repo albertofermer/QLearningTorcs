@@ -96,21 +96,6 @@ public class JugadorMarchas extends Controller {
 		else // otherwhise keep current gear
 			return gear;
 	}
-
-	private float getSteer(SensorModel sensors) {
-		// steering angle is compute by correcting the actual car angle w.r.t. to track
-		// axis [sensors.getAngle()] and to adjust car position w.r.t to middle of track
-		// [sensors.getTrackPos()*0.5]
-		float targetAngle = (float) (sensors.getAngleToTrackAxis() - sensors.getTrackPosition() * 0.5);
-		// at high speed reduce the steering command to avoid loosing the control
-		if (sensors.getSpeed() > steerSensitivityOffset)
-			return (float) (targetAngle
-					/ (steerLock * (sensors.getSpeed() - steerSensitivityOffset) * wheelSensitivityCoeff));
-		else
-			return (targetAngle) / steerLock;
-
-	}
-
 	
 	public Action control(SensorModel sensors, SocketHandler mySocket) {
 
@@ -155,7 +140,7 @@ public class JugadorMarchas extends Controller {
 		}else // car is not stuck
 		{
 			// compute gear
-			int gear = getGear(sensors);
+			int gear = getGearState(sensors);
 
 			// compute steering
 			float steer = play(sensors)[0];

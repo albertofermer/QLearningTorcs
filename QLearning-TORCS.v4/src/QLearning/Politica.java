@@ -54,6 +54,8 @@ public class Politica {
 	}
 
 	public float[] getAccion(Integer state) {
+		System.out.println("Estado: " + state);
+		System.out.println("NUM:" + accion.size());
 		return accion.get(state);
 	}
 }

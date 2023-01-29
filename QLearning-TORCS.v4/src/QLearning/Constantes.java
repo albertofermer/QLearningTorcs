@@ -12,6 +12,17 @@ public final class Constantes {
 	public final static float[][] STEER_VALUES = {{-0.2f}, {-0.1f}, {0f}, {0.1f}, {0.2f}};
 	public final static int NUM_ANGLES = STEER_VALUES.length;
 	
+
+	/* Constantes de la QTable - Velocidad */
+	public final static int NUM_STATES_VEL = 11; 
+	public final static float[][] VEL_VALUES = {{0f, .1f}, {0f, .2f}, {0f, .4f}, {0f, .8f}, {0f, 1f}, 
+			{0f, 0f}, {0.1f, 0f}, {0.2f, 0f}, {0.4f, 0f}, {0.8f, 0f}, {1f, 0f}};
+	public final static int NUM_VEL = VEL_VALUES.length;
+	
+	/* Constantes de la QTable - Marchas */
+	public final static int NUM_STATES_GEAR = 5; 
+	public final static float[][] GEAR_VALUES = {{0f}, {1f}, {2f}, {3f}, {4f}, {5f}, {6f}, {7f}};
+	public final static int NUM_GEAR = GEAR_VALUES.length;
 	
 	/* Constantes del control de entrenamiento*/
 	public final static int TICK_ENTRENAMIENTO = 10;
@@ -37,17 +48,6 @@ public final class Constantes {
 	public final static double STEER_RECTO_MAX = 0.05;
 	public final static double STEER_DERECHA = -0.5;
 	public final static double STEER_IZQUIERDA = 0.5;
-
-	/* Constantes de la QTable - Velocidad */
-	public final static int NUM_STATES_VEL = 11; 
-	public final static float[][] VEL_VALUES = {{0f, .1f}, {0f, .2f}, {0f, .4f}, {0f, .8f}, {0f, 1f}, 
-			{0f, 0f}, {0.1f, 0f}, {0.2f, 0f}, {0.4f, 0f}, {0.8f, 0f}, {1f, 0f}};
-	public final static int NUM_VEL = VEL_VALUES.length;
-	
-	/* Constantes de la QTable - Marchas */
-	public final static int NUM_STATES_GEAR = 11; 
-	public final static float[][] GEAR_VALUES = {{0f}, {1f}, {2f}, {3f}, {4f}, {5f}, {6f}, {7f}};
-	public final static int NUM_GEAR = GEAR_VALUES.length;
 	
 	
 	private Constantes() {

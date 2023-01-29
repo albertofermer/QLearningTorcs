@@ -100,7 +100,7 @@ public class TrainVelocidad extends Controller {
 
 	public TrainVelocidad() {
 		politica_volante = new Politica();
-		politica_volante.loadPolitica(name_politica);
+		politica_volante.loadPolitica("volante");
 
 		datos = new Dato();
 		qtable_velocidad.loadQTable(name_qtable);
