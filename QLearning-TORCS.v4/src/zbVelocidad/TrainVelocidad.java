@@ -62,6 +62,7 @@ public class TrainVelocidad extends Controller {
 	float oldBrake;
 	double oldTrackPosition = 0.0;
 	int count_tick = 0;
+	double last_lapTime = 0.0;
 
 	double porcentaje = Constantes.PORCENTAJE_INICIAL;
 	boolean isStuck = false;
@@ -86,7 +87,7 @@ public class TrainVelocidad extends Controller {
 	private double last_trackPosition;
 	private double last_distRaced;
 	private double last_distFromStartLine;
-
+	private double max_speed = 0.0f;
 	private boolean carrera_terminada = false;
 
 	private String name_qtable = "qtable_velocidad";
@@ -102,7 +103,8 @@ public class TrainVelocidad extends Controller {
 		politica_volante = new Politica();
 		politica_volante.loadPolitica("volante");
 
-		datos = new Dato();
+		datos = new Dato(Constantes.NUM_STATES_VEL, Constantes.NUM_VEL);
+		System.out.println();
 		qtable_velocidad.loadQTable(name_qtable);
 		qTableFrame_velocidad.setQTable(qtable_velocidad);
 		datos.writeHeader(name_datos); // escribe el header.
@@ -118,7 +120,12 @@ public class TrainVelocidad extends Controller {
 			datos.setTicks_duracion(tick);
 			datos.setLongitud_recorrida(last_distRaced);
 			datos.setEpsilon(1 - porcentaje);
-			datos.writeDistRaced(name_datos);
+			datos.setTiempo_vuelta(last_lapTime);
+			datos.setMaxSpeed(max_speed);
+
+			datos.write_vel(name_datos);
+			datos.writeActUse("accion_uso_Velocidad");
+			
 		}
 
 		iRestart++;
@@ -128,11 +135,15 @@ public class TrainVelocidad extends Controller {
 		recompensa_acumulada = 0.0;
 		// contador_vueltas = 0;
 		oldTrackPosition = 0.0;
+		max_speed = 0.0;
 
 		qtable_velocidad.saveQTable(name_qtable);
 
 		if (contador_entrenamientos == Constantes.CARRERA_JUGADOR + 1)
 			contador_entrenamientos = 0;
+		
+		
+		datos = new Dato(Constantes.NUM_STATES_VEL, Constantes.NUM_VEL);
 
 	}
 
@@ -141,12 +152,14 @@ public class TrainVelocidad extends Controller {
 		Politica.savePolitica(name_politica, qtable_velocidad, Constantes.VEL_VALUES);
 
 		if (contador_entrenamientos == Constantes.CARRERA_JUGADOR) {
-			/* Escribimos los datos que vamos a sacar para hacer gráficas */
+			/* Escribimos los datos que vamos a sacar para hacer graficas */
 			datos.setIndice_carrera(indice_carreras);
 			datos.setTicks_duracion(tick);
 			datos.setLongitud_recorrida(last_distRaced);
 			datos.setEpsilon(1 - porcentaje);
-			datos.writeDistRaced(name_datos);
+			datos.setTiempo_vuelta(last_lapTime);
+			datos.write_vel(name_datos);
+
 		}
 
 		System.out.println("Bye bye!");
@@ -177,8 +190,15 @@ public class TrainVelocidad extends Controller {
 
 		if (sensors.getLastLapTime() > 0.0) {
 
-			System.out.println("VUELTA TERMINADA!");
-			train(getSpeedState(sensors), getPorcentaje(sensors), sensors, true);
+			System.out.println("VUELTA TERMINADA!: " + sensors.getLastLapTime());
+			if (contador_entrenamientos == Constantes.CARRERA_JUGADOR) {
+				datos.setFinishedLap(true);
+			}
+
+			// Si ha tardado menos que en la mejor vuelta:
+			if (tick < bestLapTick) {
+				bestLapTick = tick;
+			}
 
 			recompensa = new ArrayList<>();
 			Action restart = new Action();
@@ -263,12 +283,12 @@ public class TrainVelocidad extends Controller {
 		action.gear = gear;
 		action.steering = steer;
 		action.accelerate = accel;
-		action.brake = 0;
+		action.brake = brake;
 		action.clutch = 0;
 
 		oldAccel = accel;
 		oldBrake = brake;
-		System.out.println("PLAY -> " + accel + "//" + brake);
+		System.out.println("PLAY -> " + action.accelerate + "//" + action.brake);
 
 		return action;
 	}
@@ -277,7 +297,7 @@ public class TrainVelocidad extends Controller {
 
 		Integer state = getSpeedState(sensors);
 
-		if (/*state == 10*/ Math.abs(sensors.getTrackPosition()) == 1.3 || count_tick > Constantes.TICKS_ESPERA) {
+		if (/* state == 10 */ Math.abs(sensors.getTrackPosition()) >= 1.3 || count_tick > Constantes.TICKS_ESPERA) {
 			isStuck = true;
 			float[] default_value = { 0f, 0f };
 			return default_value;
@@ -286,12 +306,22 @@ public class TrainVelocidad extends Controller {
 		int vel = qtable_velocidad.getBestRewardPosition(state);
 
 		last_distRaced = sensors.getDistanceRaced();
+		last_lapTime = sensors.getCurrentLapTime();
+
+		datos.addAccionValor(state, vel);
+		datos.setLongitud_recorrida(last_distRaced);
+		datos.setDistancia_punto_comienzo(sensors.getDistanceFromStartLine());
+
+		if (sensors.getSpeed() > maxSpeed) {
+			max_speed = sensors.getSpeed();
+		}
+
 		return Constantes.VEL_VALUES[vel];
 	}
 
 	private double getPorcentaje(SensorModel sensors) {
 
-		if (iRestart == Constantes.MAX_CARRERAS_INCREMENTO_PORCENTAJE) {
+		if (iRestart >= Constantes.MAX_CARRERAS_INCREMENTO_PORCENTAJE) {
 			porcentaje += Constantes.INCREMENTO_PORCENTAJE;
 			iRestart = 0;
 		}
@@ -405,7 +435,8 @@ public class TrainVelocidad extends Controller {
 		if (oldAction == null)
 			oldAction = accion;
 
-		if (/*newState == 10 || */ Math.abs(sensors.getTrackPosition()) >= 1.1 || count_tick > Constantes.TICKS_ESPERA) {
+		if (/* newState == 10 || */ Math.abs(sensors.getTrackPosition()) >= 1.3
+				|| count_tick > Constantes.TICKS_ESPERA) {
 			/**
 			 * Si el coche se sale de la carretera, entonces se recompensa negativamente.
 			 */
@@ -451,10 +482,10 @@ public class TrainVelocidad extends Controller {
 			// ((Math.abs(sensors.getTrackPosition())) + 1), 4) * 0.7;
 			// double rewardAngle = Math.pow(1 / ((Math.abs(sensors.getAngleToTrackAxis()))
 			// + 1), 4) * 0.25;
-			double rewardSpeed = (sensors.getSpeed()/360);
-			
-			//rewardSpeed = sensors.getDistanceFromStartLine()/sensors.getCurrentLapTime();
-			
+			double rewardSpeed = (sensors.getSpeed() / 360);
+
+			// rewardSpeed = sensors.getDistanceFromStartLine()/sensors.getCurrentLapTime();
+
 			Double targetReward = rewardSpeed;
 
 			// Se establece la recompensa para el estado anterior en funci�n del estado
@@ -486,13 +517,6 @@ public class TrainVelocidad extends Controller {
 //			// Acumula las acciones realizadas
 //			recompensa.add(accion_recompensa);
 
-//			// Cuando termina la vuelta recompensa positivamente dichas acciones.
-			if (vuelta_terminada)
-				// Si ha tardado menos que en la mejor vuelta:
-				if (tick < bestLapTick) {
-					bestLapTick = tick;
-					// recompensar(sensors, recompensa, '+');
-				}
 			// recompensar(sensors, recompensa, '-');
 
 			oldState = newState;

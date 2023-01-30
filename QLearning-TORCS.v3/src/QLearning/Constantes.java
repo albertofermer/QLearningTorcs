@@ -21,9 +21,9 @@ public final class Constantes {
 	
 	
 	/* Constantes de control de porcentaje */
-	public final static double PORCENTAJE_INICIAL = 0.5;
-	public final static float INCREMENTO_PORCENTAJE = 0.1f;
-	public final static int MAX_CARRERAS_INCREMENTO_PORCENTAJE = 5;
+	public final static double PORCENTAJE_INICIAL = 0.0;
+	public final static float INCREMENTO_PORCENTAJE = 0.02f;
+	public final static int MAX_CARRERAS_INCREMENTO_PORCENTAJE = 2;
 	public final static double MAX_PORCENTAJE = 0.999;
 	
 	

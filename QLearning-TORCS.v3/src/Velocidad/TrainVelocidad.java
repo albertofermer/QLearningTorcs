@@ -178,7 +178,7 @@ public class TrainVelocidad extends Controller {
 		if (sensors.getLastLapTime() > 0.0) {
 
 			System.out.println("VUELTA TERMINADA!");
-			train(getSpeedState(sensors), getPorcentaje(sensors), sensors, true);
+			//train(getSpeedState(sensors), getPorcentaje(sensors), sensors, true);
 
 			recompensa = new ArrayList<>();
 			Action restart = new Action();
@@ -293,7 +293,7 @@ public class TrainVelocidad extends Controller {
 
 		Integer state = getSpeedState(sensors);
 
-		if (state == 10 || count_tick > Constantes.TICKS_ESPERA) {
+		if (/*state == 10*/ Math.abs(sensors.getTrackPosition()) >= 1.3 || count_tick > Constantes.TICKS_ESPERA) {
 			isStuck = true;
 			float[] default_value = { 0f, 0f };
 			return default_value;
@@ -307,7 +307,7 @@ public class TrainVelocidad extends Controller {
 
 	private double getPorcentaje(SensorModel sensors) {
 
-		if (iRestart == Constantes.MAX_CARRERAS_INCREMENTO_PORCENTAJE) {
+		if (iRestart >= Constantes.MAX_CARRERAS_INCREMENTO_PORCENTAJE) {
 			porcentaje += Constantes.INCREMENTO_PORCENTAJE;
 			iRestart = 0;
 		}
@@ -421,7 +421,7 @@ public class TrainVelocidad extends Controller {
 		if (oldAction == null)
 			oldAction = accion;
 
-		if (newState == 10 || count_tick > Constantes.TICKS_ESPERA) {
+		if (/*newState == 10 || */ Math.abs(sensors.getTrackPosition()) >= 1.3 || count_tick > Constantes.TICKS_ESPERA) {
 			/**
 			 * Si el coche se sale de la carretera, entonces se recompensa negativamente.
 			 */
