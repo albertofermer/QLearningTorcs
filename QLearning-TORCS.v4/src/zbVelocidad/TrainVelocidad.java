@@ -144,6 +144,8 @@ public class TrainVelocidad extends Controller {
 		
 		
 		datos = new Dato(Constantes.NUM_STATES_VEL, Constantes.NUM_VEL);
+		Politica.savePolitica(name_politica, qtable_velocidad, Constantes.VEL_VALUES);
+
 
 	}
 
@@ -201,6 +203,13 @@ public class TrainVelocidad extends Controller {
 			}
 
 			recompensa = new ArrayList<>();
+			Action restart = new Action();
+			restart.restartRace = true;
+			return restart;
+		}
+		
+		if (tick > 10000) {
+			System.out.println("TIEMPO AGOTADO!");
 			Action restart = new Action();
 			restart.restartRace = true;
 			return restart;
@@ -311,7 +320,7 @@ public class TrainVelocidad extends Controller {
 		datos.addAccionValor(state, vel);
 		datos.setLongitud_recorrida(last_distRaced);
 		datos.setDistancia_punto_comienzo(sensors.getDistanceFromStartLine());
-
+		System.out.println("SPEED: " + sensors.getSpeed());
 		if (sensors.getSpeed() > maxSpeed) {
 			max_speed = sensors.getSpeed();
 		}
