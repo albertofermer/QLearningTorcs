@@ -190,7 +190,7 @@ public class JugadorMarchas extends Controller {
 		// derecha negativo izquierda positivo
 		double trackPosition = sensors.getTrackPosition();
 		double carAngle = sensors.getAngleToTrackAxis();
-		
+
 		if (estaEntre(trackPosition, Constantes.CENTRO_MIN, Constantes.CENTRO_MAX)) {
 			if (estaEntre(carAngle, Constantes.STEER_RECTO_MIN, Constantes.STEER_RECTO_MAX))
 				return 0; // centro - coche mira recto
@@ -198,9 +198,9 @@ public class JugadorMarchas extends Controller {
 				return 1; // centro - coche mira der
 			else if (estaEntre(carAngle, Constantes.STEER_DERECHA, Constantes.STEER_RECTO_MIN))
 				return 2; // centro - coche mira izq
-			else if (estaEntre(carAngle, Constantes.STEER_IZQUIERDA, 1))
+			else if (carAngle > Constantes.STEER_IZQUIERDA)
 				return 3;
-			else if (estaEntre(carAngle, -1, Constantes.STEER_DERECHA))
+			else if (carAngle < Constantes.STEER_DERECHA)
 				return 4;
 
 		} else if (trackPosition < Constantes.CENTRO_MIN) { // derecha
@@ -210,9 +210,9 @@ public class JugadorMarchas extends Controller {
 				return 6; // centro - coche mira der
 			else if (estaEntre(carAngle, Constantes.STEER_DERECHA, Constantes.STEER_RECTO_MIN))
 				return 7; // centro - coche mira izq
-			else if (estaEntre(carAngle, Constantes.STEER_IZQUIERDA, 1))
+			else if (carAngle > Constantes.STEER_IZQUIERDA)
 				return 8;
-			else if (estaEntre(carAngle, -1, Constantes.STEER_DERECHA))
+			else if (carAngle < Constantes.STEER_DERECHA)
 				return 9;
 
 		} else if (trackPosition > Constantes.CENTRO_MAX) { // Izq
@@ -222,12 +222,11 @@ public class JugadorMarchas extends Controller {
 				return 11; // centro - coche mira der
 			else if (estaEntre(carAngle, Constantes.STEER_DERECHA, Constantes.STEER_RECTO_MIN))
 				return 12; // centro - coche mira izq
-			else if (estaEntre(carAngle, Constantes.STEER_IZQUIERDA, 1))
-				return 13;
-			else if (estaEntre(carAngle, -1, Constantes.STEER_DERECHA))
+			else if (carAngle > Constantes.STEER_IZQUIERDA)
 				return 14;
+			else if (carAngle < Constantes.STEER_DERECHA)
+				return 13;
 		}
-
 
 		return null;
 	}

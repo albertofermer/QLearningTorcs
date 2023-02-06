@@ -99,7 +99,6 @@ public class TrainVelocidad extends Controller {
 		politica_volante.loadPolitica("volante");
 
 		datos = new Dato(Constantes.NUM_STATES_VEL, Constantes.NUM_VEL);
-		System.out.println();
 		qtable_velocidad.loadQTable(name_qtable);
 		qTableFrame_velocidad.setQTable(qtable_velocidad);
 		datos.writeHeader(name_datos); // escribe el header.
@@ -147,7 +146,6 @@ public class TrainVelocidad extends Controller {
 		indice_carreras++;
 		tick = 0;
 		recompensa_acumulada = 0.0;
-		// contador_vueltas = 0;
 		oldTrackPosition = 0.0;
 		max_speed = 0.0;
 
@@ -203,6 +201,13 @@ public class TrainVelocidad extends Controller {
 
 		this.mySocket = mySocket;
 
+		if (sensors.getLastLapTime() > 0.0) {
+			System.out.println("VUELTA TERMINADA!");
+			Action restart = new Action();
+			restart.restartRace = true;
+			return restart;
+		}
+		
 		// compute gear
 		int gear = getGear(sensors);
 
@@ -272,7 +277,7 @@ public class TrainVelocidad extends Controller {
 
 		Integer state = getSpeedState(sensors);
 
-		if (Math.abs(sensors.getTrackPosition()) >= 1.3 || tick >= 10000) {
+		if (Math.abs(sensors.getTrackPosition()) >= 1.3 || tick >= Constantes.NUMERO_MAXIMO_TICKS) {
 			isStuck = true;
 			float[] default_value = { 0f, 0f };
 			return default_value;

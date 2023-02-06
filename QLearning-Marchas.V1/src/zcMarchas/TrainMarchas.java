@@ -59,6 +59,12 @@ public class TrainMarchas extends Controller {
 
 	Integer lastLap = 0;
 	Integer tick = 0;
+	float oldSteer;
+	double aceleracion_actual = 0.0;
+	double aceleracion_anterior = 0.0;
+	float oldAccel;
+	float oldBrake;
+	double last_lapTime = 0.0;
 
 	double oldTrackPosition = 0.0;
 	int count_tick = 0;
@@ -75,17 +81,15 @@ public class TrainMarchas extends Controller {
 
 	/* Q-Table - Marchas */
 	/////////////////////////////////////////////////////////////////////////
-	private static QTable qtable_marchas = new QTable("Marchas", Constantes.NUM_STATES_GEAR, Constantes.NUM_GEAR, Constantes.GEAR_VALUES);
-	private static QTableFrame qTableFrame_velocidad = new QTableFrame(qtable_marchas, Constantes.GEAR_VALUES, Constantes.NUM_GEAR);
+	private static QTable qtable_marchas = new QTable("Marchas", Constantes.NUM_STATES_GEAR, Constantes.NUM_GEAR,
+			Constantes.GEAR_VALUES);
+	private static QTableFrame qTableFrame_velocidad = new QTableFrame(qtable_marchas, Constantes.GEAR_VALUES,
+			Constantes.NUM_GEAR);
 	private Random randomGenerator = new Random();
 	/////////////////////////////////////////////////////////////////////////
 
-	private float last_steer;
-	private double last_trackPosition;
 	private double last_distRaced;
-	private double last_distFromStartLine;
-
-	private boolean carrera_terminada = false;
+	private double max_speed = 0.0f;
 
 	private String name_qtable = "qtable_marchas";
 	private String name_politica = "marchas";
@@ -94,8 +98,11 @@ public class TrainMarchas extends Controller {
 	ArrayList<float[]> recompensa = new ArrayList<>();
 
 	SocketHandler mySocket;
+
+	/* Politicas */
 	Politica politica_volante;
 	Politica politica_velocidad;
+	private int last_action;
 
 	public TrainMarchas() {
 		politica_volante = new Politica();
@@ -103,13 +110,32 @@ public class TrainMarchas extends Controller {
 
 		politica_velocidad = new Politica();
 		politica_velocidad.loadPolitica("velocidad");
-		
+
 		datos = new Dato(Constantes.NUM_STATES_GEAR, Constantes.NUM_GEAR);
 		qtable_marchas.loadQTable(name_qtable);
 		qTableFrame_velocidad.setQTable(qtable_marchas);
 		datos.writeHeader(name_datos); // escribe el header.
 
 		qtable_marchas.saveQTable(name_qtable);
+	}
+
+	public void reiniciar() {
+		Action action = new Action();
+		action.restartRace = true;
+		mySocket.send(action.toString());
+	}
+
+	public void mostrar(SensorModel sensors) {
+		System.out.println("Mejor Vuelta: " + bestLapTick);
+		System.out.println("Tick: " + tick);
+		System.out.println("Carrera #" + indice_carreras);
+		System.out.println("Porcentaje: " + porcentaje);
+		System.out.println("Velocidad: " + sensors.getSpeed());
+		System.out.println("Marcha: " + sensors.getGear());
+		System.out.println("Accel: " + aceleracion_actual);
+		System.out.println("Distancia Recorrida: " + sensors.getDistanceRaced());
+		System.out.println("Distancia a la meta: " + sensors.getDistanceFromStartLine());
+		System.out.println("-----------------------------");
 	}
 
 	public void reset() {
@@ -121,6 +147,8 @@ public class TrainMarchas extends Controller {
 			datos.setLongitud_recorrida(last_distRaced);
 			datos.setEpsilon(1 - porcentaje);
 			datos.writeDistRaced(name_datos);
+			datos.setTiempo_vuelta(last_lapTime);
+			datos.setMaxSpeed(max_speed);
 		}
 
 		iRestart++;
@@ -128,10 +156,13 @@ public class TrainMarchas extends Controller {
 		indice_carreras++;
 		tick = 0;
 		recompensa_acumulada = 0.0;
-		// contador_vueltas = 0;
 		oldTrackPosition = 0.0;
+		max_speed = 0.0;
 		
-		//Marcha inicial es N(0) Â¿Punto Muerto?
+		aceleracion_actual = 0.0;
+		aceleracion_anterior = 0.0;
+
+		// Marcha inicial es N(0) ¿Punto Muerto?
 		oldGearT = 0;
 		oldGearP = 0;
 
@@ -152,7 +183,8 @@ public class TrainMarchas extends Controller {
 			datos.setTicks_duracion(tick);
 			datos.setLongitud_recorrida(last_distRaced);
 			datos.setEpsilon(1 - porcentaje);
-			datos.writeDistRaced(name_datos);
+			datos.write_vel(name_datos);
+			datos.setTiempo_vuelta(last_lapTime);
 		}
 
 		System.out.println("Bye bye!");
@@ -179,32 +211,23 @@ public class TrainMarchas extends Controller {
 	}
 
 	public Action control(SensorModel sensors, SocketHandler mySocket) {
-		System.out.println("Mejor Vuelta: " + bestLapTick);
-
+		this.mySocket = mySocket;
+		
 		if (sensors.getLastLapTime() > 0.0) {
-
 			System.out.println("VUELTA TERMINADA!");
-			train(getGearState(sensors), getPorcentaje(sensors), sensors);
-
-			recompensa = new ArrayList<>();
 			Action restart = new Action();
 			restart.restartRace = true;
 			return restart;
 		}
 
-		this.mySocket = mySocket;
-
-		// compute steering, accel and brake
+		aceleracion_actual = sensors.getSpeed() - oldSpeed;
+		
+		
+		int gear = 0;
 		float steer = politica_volante.getAccion(getSteerState(sensors))[0];
 		float accel = politica_velocidad.getAccion(getSpeedState(sensors))[0];
 		float brake = politica_velocidad.getAccion(getSpeedState(sensors))[1];
 
-		System.out.println("Tick: " + tick);
-		System.out.println("Entrenamiento: " + contador_entrenamientos);
-		System.out.println("Carrera #" + indice_carreras);
-		
-		int gear;
-		
 		if (tick >= Constantes.TICK_COMIENZO && (tick % Constantes.TICK_ENTRENAMIENTO == 0)
 				&& contador_entrenamientos < Constantes.CARRERA_JUGADOR) {
 
@@ -214,16 +237,20 @@ public class TrainMarchas extends Controller {
 			 */
 			System.out.println("TRAIN");
 			// compute gear
+			System.out.println(getGearState(sensors));
 			int acc_gear = (int) train(getGearState(sensors), getPorcentaje(sensors), sensors);
 			gear = oldGearT;
-			
+
 			System.out.println("Estado: ");
 			System.out.println("Accion GEAR: " + acc_gear);
+			last_action = acc_gear;
 			gear = aplicaAccionGear(acc_gear, gear);
+			
 			System.out.println("oldGear: " + oldGearT);
 			System.out.println("GEAR: " + gear);
+			System.out.println("PLAY -> " + last_action);
 			oldGearT = gear;
-			
+
 		} else if (tick >= Constantes.TICK_COMIENZO && contador_entrenamientos == Constantes.CARRERA_JUGADOR) {
 			/**
 			 * Cada 10 entrenamientos, probamos a jugar con el jugador para ver su progreso
@@ -232,9 +259,9 @@ public class TrainMarchas extends Controller {
 			System.out.println("--JUGADOR--");
 			int acc_gear = (int) play(sensors);
 			gear = oldGearP;
-			
+			last_action = acc_gear;
 			gear = aplicaAccionGear(acc_gear, gear);
-			
+
 			// Si el coche se sale de la pista, reiniciamos la partida.
 			if (isStuck) {
 				Action reset = new Action();
@@ -242,34 +269,19 @@ public class TrainMarchas extends Controller {
 				isStuck = false;
 				return reset;
 			}
-			
+
 			oldGearP = gear;
+			System.out.println("PLAY -> " + last_action);
 
 		} else {
 			gear = oldGearT;
 		}
 
+		aceleracion_anterior = aceleracion_actual;
+		
 		tick++;
 
 		clutch = clutching(sensors, clutch);
-
-		/**
-		 * Si el coche no se mueve, al menos, una diferencia de 5 metros en 10 ticks, se
-		 * reinicia el juego y se puntï¿½a negativamente.
-		 */
-		System.out.println(Math.abs(sensors.getTrackPosition() - oldTrackPosition));
-		if (Math.abs(sensors.getTrackPosition() - oldTrackPosition) <= 0.001 && sensors.getSpeed() < 1) {
-			// Si hay una diferencia minima aumenta en uno el contador.
-			count_tick++;
-		} else {
-			// Si aumenta dicha diferencia, se resetea el contador.
-			count_tick = 0;
-		}
-
-		// Actualiza la posiciï¿½n de referencia cada X ticks.
-		if (tick > Constantes.TICK_COMIENZO && tick % Constantes.TICKS_ESPERA == 0) {
-			oldTrackPosition = sensors.getTrackPosition();
-		}
 
 		// build a CarControl variable and return it
 		Action action = new Action();
@@ -277,27 +289,27 @@ public class TrainMarchas extends Controller {
 		action.gear = gear;
 		action.steering = steer;
 		action.accelerate = accel;
-		action.brake = 0;
+		action.brake = brake;
 		action.clutch = 0;
 
 		oldGearT = gear;
-		System.out.println("PLAY -> " + gear);
+		
 
 		return action;
 	}
 
 	private int aplicaAccionGear(int acc_gear, int gear) {
-		
-		if(acc_gear == -1)
+
+		if (acc_gear == -1)
 			gear--;
-		else if(acc_gear == 1)
+		else if (acc_gear == 1)
 			gear++;
-			
-		if(gear < -1)
+
+		if (gear < -1)
 			gear = -1;
-		else if(gear >6)
+		else if (gear > 6)
 			gear = 6;
-		
+
 		return gear;
 	}
 
@@ -305,7 +317,15 @@ public class TrainMarchas extends Controller {
 
 		Integer state = getGearState(sensors);
 
-		if (/*state == 10*/ Math.abs(sensors.getTrackPosition()) == 1.3 || count_tick > Constantes.TICKS_ESPERA) {
+		if (Math.abs(sensors.getTrackPosition()) >= 1.3 || tick >= Constantes.NUMERO_MAXIMO_TICKS) {
+			isStuck = true;
+			float default_value = 0f;
+			return default_value;
+		}
+
+		if (sensors.getLastLapTime() > 0.0) {
+			System.out.println("VUELTA TERMINADA!: " + sensors.getLastLapTime());
+			datos.setFinishedLap(true);
 			isStuck = true;
 			float default_value = 0f;
 			return default_value;
@@ -314,12 +334,17 @@ public class TrainMarchas extends Controller {
 		int gear = qtable_marchas.getBestRewardPosition(state);
 
 		last_distRaced = sensors.getDistanceRaced();
+		last_lapTime = sensors.getCurrentLapTime();
+		datos.addAccionValor(state, gear);
+		datos.setLongitud_recorrida(last_distRaced);
+		datos.setDistancia_punto_comienzo(sensors.getDistanceFromStartLine());
+
 		return Constantes.GEAR_VALUES[gear][0];
 	}
 
 	private double getPorcentaje(SensorModel sensors) {
 
-		if (iRestart == Constantes.MAX_CARRERAS_INCREMENTO_PORCENTAJE) {
+		if (iRestart >= Constantes.MAX_CARRERAS_INCREMENTO_PORCENTAJE) {
 			porcentaje += Constantes.INCREMENTO_PORCENTAJE;
 			iRestart = 0;
 		}
@@ -334,25 +359,36 @@ public class TrainMarchas extends Controller {
 		return (minimo <= valor && valor <= maximo);
 
 	}
-	
+
 	private Integer getGearState(SensorModel sensors) {
 		double actualSpeed = sensors.getSpeed();
 		double rpm = sensors.getRPM();
-		
-		
-		if(actualSpeed < oldSpeed) {
-			if(estaEntre(rpm, 0, 2000))
-				return 0;
-			else
-				return 1;
-		}else if(Math.abs(actualSpeed - oldSpeed) > 1) {
-			if(estaEntre(rpm, 7000, 10000))
-				return 2;
-			else
-				return 3;
-		}else {
-			return 4;
-		}	
+
+		if ( (actualSpeed - oldSpeed) < 0) { // Está frenando
+			if (estaEntre(rpm, -1, 1000)) return 0;
+			else if (estaEntre(rpm, 1001, 2000)) return 1;
+			else if (estaEntre(rpm, 2001, 3000)) return 2;
+			else if (estaEntre(rpm, 3001, 4000)) return 3;
+			else if (estaEntre(rpm, 4001, 5000)) return 4;
+			else if (estaEntre(rpm, 5001, 6000)) return 5;
+			else if (estaEntre(rpm, 6001, 7000)) return 6;
+			else if (estaEntre(rpm, 7001, 8000)) return 7;
+			else if (estaEntre(rpm, 8001, 9000)) return 8;
+			else return 9;
+		} else if (actualSpeed - oldSpeed > 0) { // Está acelerando
+			if (estaEntre(rpm, 0, 1000)) return 10;
+			else if (estaEntre(rpm, 1001, 2000)) return 11;
+			else if (estaEntre(rpm, 2001, 3000)) return 12;
+			else if (estaEntre(rpm, 3001, 4000)) return 13;
+			else if (estaEntre(rpm, 4001, 5000)) return 14;
+			else if (estaEntre(rpm, 5001, 6000)) return 15;
+			else if (estaEntre(rpm, 6001, 7000)) return 16;
+			else if (estaEntre(rpm, 7001, 8000)) return 17;
+			else if (estaEntre(rpm, 8001, 9000)) return 18;
+			else return 19;
+		} else { // Se mantiene la velocidad.
+			return 20;
+		}
 	}
 
 	private Integer getSpeedState(SensorModel sensors) {
@@ -429,21 +465,13 @@ public class TrainMarchas extends Controller {
 
 		return null;
 	}
-	
-	private Integer getStateGear(SensorModel sensors) {
-		return -1;
-	}
 
 	public float train(Integer newState, Double porcentaje, SensorModel sensors) {
 
-		// Elige la posiciï¿½n que obtenga una mayor recompensa a partir del estado
-		// actual. //EXPLOTA
+		// Elige la mejor opción de la qtable. (Explotar).
 		Integer accion = qtable_marchas.getBestRewardPosition(newState);
 
-		if (porcentaje > 1.0)
-			porcentaje = 1.0;
-
-		// Explora nuevos estados
+		// Elige una opción aleatoria para evaluarla (Explorar).
 		if (this.randomGenerator.nextDouble() > porcentaje) {
 			System.out.println("EXPLORA");
 			accion = this.randomGenerator.nextInt(Constantes.NUM_GEAR);
@@ -457,57 +485,49 @@ public class TrainMarchas extends Controller {
 		if (oldAction == null)
 			oldAction = accion;
 
-		if (/*newState == 10 || */ Math.abs(sensors.getTrackPosition()) >= 1.1 || count_tick > Constantes.TICKS_ESPERA) {
-			/**
-			 * Si el coche se sale de la carretera, entonces se recompensa negativamente.
-			 */
+		// Si termina la carrera se actualiza la mejor vuelta y se reinicia.
+		if (sensors.getLastLapTime() > 0.0) {
+			System.out.println("VUELTA TERMINADA!: " + sensors.getLastLapTime());
+			// Si ha tardado menos que en la mejor vuelta:
+			if (tick < bestLapTick) {
+				bestLapTick = tick;
+			}
+			reiniciar();
+		}
 
-			/**
-			 * Antes de reiniciar deberiamos actualizar la tabla con una recompensa
-			 * negativa.
-			 */
-			// if (newState == 10 || count_tick > Constantes.TICKS_ESPERA) {
+		// Si el coche tarda mas del numero maximo de ticks, se recompensa negativamente
+		// y se reinicia.
+		if (tick > Constantes.NUMERO_MAXIMO_TICKS
+				|| Math.abs(sensors.getTrackPosition()) >= Constantes.LIMITE_CARRETERA) {
 
-			System.out.println("SE HA SALIDO DE LA CARRETERA.");
-			Double targetReward = -1000.0;
-			Double reward = qtable_marchas.setReward(oldState, newState, accion, oldAction, targetReward,
+			if (tick > Constantes.NUMERO_MAXIMO_TICKS)
+				System.out.println("TIEMPO AGOTADO!");
+			else if (Math.abs(sensors.getTrackPosition()) >= Constantes.LIMITE_CARRETERA)
+				System.out.println("SE HA SALIDO DE LA CARRETERA!");
+
+			Double targetReward = Constantes.RECOMPENSA_NEGATIVA;
+			qtable_marchas.setReward(oldState, newState, accion, oldAction, targetReward,
 					getBestMoveFromTarget(newState));
 
-			// }
-			System.out.println("Porcentaje: " + porcentaje);
-			System.out.println("Estado: " + getSpeedState(sensors));
-			System.out.println("Posicion: " + sensors.getTrackPosition());
-			System.out.println("Angulo: " + sensors.getAngleToTrackAxis());
-			System.out.println("Distancia Vector#9: " + sensors.getTrackEdgeSensors()[9]);
-			System.out.println("Velocidad: " + sensors.getSpeed());
-			System.out.println("Distancia Recorrida: " + sensors.getDistanceRaced());
-			System.out.println("Distancia desde el inicio: " + sensors.getDistanceFromStartLine());
-			System.out.println("-----------------------------");
-			// Actualiza la ventana de la Q-Tabla
+			mostrar(sensors);
 			qTableFrame_velocidad.setQTable(qtable_marchas);
-
-			// recompensa_acumulada += reward;
-
-			Action action = new Action();
-			action.restartRace = true;
-			mySocket.send(action.toString());
+			reiniciar();
 
 		} else {
 
-			/**
-			 * La recompensa sera proporcional a la distancia recorrida (cuanto mayor
-			 * distancia, mayor recompensa) e inversamente proporcional a la distancia al
-			 * centro de la carretera (cuanto mas cercano a 0, mas recompensa).
-			 */
+			Double targetReward = sensors.getDistanceFromStartLine() / sensors.getCurrentLapTime();
+			Double rewardFuel = sensors.getFuelLevel() * 0.6;
+			Double rewardSpeed = sensors.getSpeed() * 0.4;
+			Double rewardAccel = sensors.getRPM()*(aceleracion_actual-aceleracion_anterior);
 			
-			Double targetReward = sensors.getDistanceFromStartLine()/sensors.getCurrentLapTime();
-			
-			// La recompensa podrÃ­a ser en funciÃ³n de las RPM, es decir, si se encuentra en buenas revoluciones recompensar que no cambie de marcha
+			targetReward = rewardAccel;
+			// La recompensa podrÃ­a ser en funciÃ³n de las RPM, es decir, si se encuentra
+			// en buenas revoluciones recompensar que no cambie de marcha
 			// Si revoluciones bajas y disminuye --> recompensar
 			// Si revoluciones bajas y aumenta o mantiene --> castigar
 			// Si revoluciones altas y aumenta --> recompensar
 			// Si revoulciones altas y disminuye o mantiene --> castigar
-			
+
 //			switch(getGearState(sensors)) {
 //			case 0: //Revoluciones bajas y velocidad disminuye
 //				if(oldGearT < actualGear)
@@ -529,28 +549,11 @@ public class TrainMarchas extends Controller {
 //				break;
 //			}
 
-			// Se establece la recompensa para el estado anterior en funciï¿½n del estado
-			// actual.
-
 			Double reward = qtable_marchas.setReward(oldState, newState, accion, oldAction, targetReward,
 					getBestMoveFromTarget(newState));
 
-			System.out.println("Porcentaje: " + porcentaje);
-			System.out.println("Estado: " + getGearState(sensors));
-			System.out.println("Estado Antiguo: " + oldState);
-			System.out.println("Accion_Actual : " + Constantes.GEAR_VALUES[accion]);
-			System.out.println("RPM: " + sensors.getRPM());
-			System.out.println("Velocidad: " + sensors.getSpeed());
-			System.out.println("Recompensa Actual: " + targetReward);
-			System.out.println("Recompensa Acumulada " + recompensa_acumulada);
-			System.out.println("Distancia a la meta: " + sensors.getDistanceFromStartLine());
-			System.out.println("-----------------------------");
+			mostrar(sensors);
 
-			// recompensa_acumulada += reward;
-
-
-			oldState = newState;
-			oldSpeed = sensors.getSpeed();
 		}
 
 		// Actualiza la ventana de la Q-Tabla
@@ -562,43 +565,17 @@ public class TrainMarchas extends Controller {
 		//////////////////////////////////////
 
 		oldAction = accion;
+		oldState = newState;
+		oldSpeed = sensors.getSpeed();
 
 		return Constantes.GEAR_VALUES[accion][0];
 
 	}
 
-	// Para calcular la maxFutureQ en la QTable
 	private Integer getBestMoveFromTarget(Integer nextState) {
 		Integer best_angle = null;
 		best_angle = qtable_marchas.getBestRewardPosition(nextState);
 		return best_angle;
-	}
-
-	private float filterABS(SensorModel sensors, float brake) {
-		// convert speed to m/s
-		float speed = (float) (sensors.getSpeed() / 3.6);
-		// when spedd lower than min speed for abs do nothing
-		if (speed < absMinSpeed)
-			return brake;
-
-		// compute the speed of wheels in m/s
-		float slip = 0.0f;
-		for (int i = 0; i < 4; i++) {
-			slip += sensors.getWheelSpinVelocity()[i] * wheelRadius[i];
-		}
-		// slip is the difference between actual speed of car and average speed of
-		// wheels
-		slip = speed - slip / 4.0f;
-		// when slip too high applu ABS
-		if (slip > absSlip) {
-			brake = brake - (slip - absSlip) / absRange;
-		}
-
-		// check brake is not negative, otherwise set it to zero
-		if (brake < 0)
-			return 0;
-		else
-			return brake;
 	}
 
 	float clutching(SensorModel sensors, float clutch) {

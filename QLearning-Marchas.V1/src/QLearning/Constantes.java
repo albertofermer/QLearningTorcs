@@ -21,8 +21,8 @@ public final class Constantes {
 	public final static int NUM_VEL = VEL_VALUES.length;
 	
 	/* Constantes de la QTable - Marchas */
-	public final static int NUM_STATES_GEAR = 5; 
-	public final static float[][] GEAR_VALUES = {{-1}, {0}, {1}};
+	public final static int NUM_STATES_GEAR = 21; 
+	public final static float[][] GEAR_VALUES = {{-1}, {0}, {+1}}; // Bajar, Mantener, Subir
 	public final static int NUM_GEAR = GEAR_VALUES.length;
 	
 	/* Constantes del control de entrenamiento*/
@@ -35,7 +35,7 @@ public final class Constantes {
 	
 	
 	/* Constantes de control de porcentaje */
-	public final static double PORCENTAJE_INICIAL = 0.0;
+	public final static double PORCENTAJE_INICIAL = 0.7;
 	public final static float INCREMENTO_PORCENTAJE = 0.004f;
 	public final static int MAX_CARRERAS_INCREMENTO_PORCENTAJE = 1;
 	public final static double MAX_PORCENTAJE = 0.999;
